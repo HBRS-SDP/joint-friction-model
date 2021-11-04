@@ -181,3 +181,17 @@ void FrictionObserver::getNominalState(Eigen::VectorXd &nominal_motor_position, 
 
     nominal_motor_velocity = theta_dot_nominal;
 }
+
+//Save data to a TXT file
+void FrictionObserver::saveData(const Eigen::VectorXd &motor_position, const Eigen::VectorXd &motor_velocity, const Eigen::VectorXd &joint_torque_cmd, const Eigen::VectorXd &joint_torque_measured, Eigen::VectorXd &observed_joint_friction)
+{
+    ofstream myfile;
+    myfile.open ("readings.txt");
+    myfile << "Writing this to a file.\n";
+    myfile << motor_position <<".\n";
+    myfile << motor_velocity <<".\n";
+    myfile << joint_torque_cmd <<".\n";
+    myfile << joint_torque_measured <<".\n";
+    myfile << observed_joint_friction <<".\n";
+    myfile.close();
+}
