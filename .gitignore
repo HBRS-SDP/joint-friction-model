@@ -1,2 +1,3 @@
 build/*
 kortex_api/*
+.vscode/*
