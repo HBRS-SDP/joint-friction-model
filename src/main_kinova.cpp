@@ -33,6 +33,9 @@ namespace k_api = Kinova::Api;
 #define ACTUATOR_COUNT 7
 #define DEG_TO_RAD(x) (x) * 3.14159265358979323846 / 180.0
 #define RAD_TO_DEG(x) (x) * 180.0 / 3.14159265358979323846
+#define PARAMETERS_COUNT 11
+#define TEST_JOINT 6
+
 float TIME_DURATION = 30.0f; // Duration of the example (seconds)
 
 // Maximum allowed waiting time during actions
@@ -138,9 +141,11 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
 
 bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
-    const int RATE_HZ = 500; // Hz
+    constexpr int RATE_HZ = 500; // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
+    constexpr double task_time_limit_sec = 6.5;
+    constexpr int estimated_loop_iterations = static_cast<int> (task_time_limit_sec * RATE_HZ + 20); //aprox number of iterations +20 
 
     int iteration_count = 0;
     int control_loop_delay_count = 0;
@@ -172,16 +177,20 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
                                        friction_estimation_i_gain, friction_observer_type::PD, integration_method::SYMPLECTIC_EULER, 0, 0.0);
 
     // Prepare state and control variables
-    Eigen::VectorXd jnt_ctrl_torque(ACTUATOR_COUNT), jnt_position(ACTUATOR_COUNT), jnt_velocity(ACTUATOR_COUNT), jnt_torque(ACTUATOR_COUNT), jnt_command_current(ACTUATOR_COUNT), jnt_current(ACTUATOR_COUNT),
-                  friction_torque(ACTUATOR_COUNT), nominal_pos(ACTUATOR_COUNT), nominal_vel(ACTUATOR_COUNT), initial_position(ACTUATOR_COUNT), initial_velocity(ACTUATOR_COUNT);
+    Eigen::VectorXd jnt_ctrl_torque_vec(ACTUATOR_COUNT), jnt_position_vec(ACTUATOR_COUNT), jnt_velocity_vec(ACTUATOR_COUNT), jnt_torque_vec(ACTUATOR_COUNT), jnt_command_current_vec(ACTUATOR_COUNT), jnt_current_vec(ACTUATOR_COUNT),
+                  friction_torque_vec(ACTUATOR_COUNT), nominal_pos_vec(ACTUATOR_COUNT), nominal_vel_vec(ACTUATOR_COUNT), initial_position_vec(ACTUATOR_COUNT), initial_velocity_vec(ACTUATOR_COUNT);
+
+    // Prepare matrix for saving values
+    double parameters[estimated_loop_iterations][PARAMETERS_COUNT];
 
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
     auto servoing_mode = k_api::Base::ServoingModeInformation();
 
-    /////////////////////////////////////
-    const int test_joint_index = 6;
-    //////////////////////////
+
+    //Open a file (csv)
+    ofstream myfile;
+    myfile.open("readings.csv"); 
 
     // Clearing faults
     try
@@ -233,25 +242,24 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
         actuator_config->SetControlMode(control_mode_message, 7);
 
         compensate_joint_friction = true;
-        double task_time_limit_sec = 6.5;
         double error = 0.0, previous_error = 0.0;
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
 
         // Initialize friction estimator (feedforward component)
         for (int i = 0; i < ACTUATOR_COUNT; i++)
         {
-            jnt_position(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
-            jnt_velocity(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
+            jnt_position_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
+            jnt_velocity_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
         }
-        friction_observer.setInitialState(jnt_position, jnt_velocity);
+        friction_observer.setInitialState(jnt_position_vec, jnt_velocity_vec);
 
-        initial_position = jnt_position;
-        initial_velocity = jnt_velocity;
+        initial_position_vec = jnt_position_vec;
+        initial_velocity_vec = jnt_velocity_vec;
 
         // Velocity control
         double theta_dot_desired = 0.1;
-        if      (theta_dot_desired >  joint_velocity_limits[test_joint_index]) theta_dot_desired =  joint_velocity_limits[test_joint_index];
-        else if (theta_dot_desired < -joint_velocity_limits[test_joint_index]) theta_dot_desired = -joint_velocity_limits[test_joint_index];
+        if      (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
+        else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
 
         // ##########################################################################
         // Real-time loop
@@ -294,45 +302,45 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
 
             for (int i = 0; i < ACTUATOR_COUNT; i++)
             {
-                jnt_position(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
-                jnt_velocity(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
-                jnt_torque  (i) = base_feedback.actuators(i).torque();
-                jnt_current (i) = base_feedback.actuators(i).current_motor();
+                jnt_position_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
+                jnt_velocity_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
+                jnt_torque_vec  (i) = base_feedback.actuators(i).torque();
+                jnt_current_vec (i) = base_feedback.actuators(i).current_motor();
             }
 
             // Get the friction-free state
-            if (compensate_joint_friction) friction_observer.getNominalState(nominal_pos, nominal_vel);
+            if (compensate_joint_friction) friction_observer.getNominalState(nominal_pos_vec, nominal_vel_vec);
             else
             {
-                nominal_pos = jnt_position;
-                nominal_vel = jnt_velocity;
+                nominal_pos_vec = jnt_position_vec;
+                nominal_vel_vec = jnt_velocity_vec;
             }
 
             for (int i = 0; i < ACTUATOR_COUNT; i++)
             {
-                if (i != test_joint_index) base_command.mutable_actuators(i)->set_position(home_configuration[i]);
+                if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(home_configuration[i]);
             }
-            base_command.mutable_actuators(test_joint_index)->set_position(base_feedback.actuators(test_joint_index).position());
+            base_command.mutable_actuators(TEST_JOINT)->set_position(base_feedback.actuators(TEST_JOINT).position());
 
             // Error calc
-            error = theta_dot_desired - nominal_vel(test_joint_index);
+            error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
 
             // PD control
-            jnt_ctrl_torque(test_joint_index)  = 11.5 * error; // P controller
-            jnt_ctrl_torque(test_joint_index) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+            jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
+            jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
             previous_error = error;
 
             // Estimate friction in joints
             if (compensate_joint_friction)
             {
-                friction_observer.estimateFrictionTorque(jnt_position, jnt_velocity, jnt_ctrl_torque, jnt_torque, friction_torque);
-                jnt_ctrl_torque(test_joint_index) -= friction_torque(test_joint_index);
+                friction_observer.estimateFrictionTorque(jnt_position_vec, jnt_velocity_vec, jnt_ctrl_torque_vec, jnt_torque_vec, friction_torque_vec);
+                jnt_ctrl_torque_vec(TEST_JOINT) -= friction_torque_vec(TEST_JOINT);
             }
  
-            jnt_command_current(test_joint_index) = jnt_ctrl_torque(test_joint_index) / motor_torque_constant[test_joint_index];
-            if      (jnt_command_current(test_joint_index) >  joint_current_limits[test_joint_index]) jnt_command_current(test_joint_index) =  joint_current_limits[test_joint_index];
-            else if (jnt_command_current(test_joint_index) < -joint_current_limits[test_joint_index]) jnt_command_current(test_joint_index) = -joint_current_limits[test_joint_index];
-            base_command.mutable_actuators(test_joint_index)->set_current_motor(jnt_command_current(test_joint_index));
+            jnt_command_current_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) / motor_torque_constant[TEST_JOINT];
+            if      (jnt_command_current_vec(TEST_JOINT) >  joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) =  joint_current_limits[TEST_JOINT];
+            else if (jnt_command_current_vec(TEST_JOINT) < -joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) = -joint_current_limits[TEST_JOINT];
+            base_command.mutable_actuators(TEST_JOINT)->set_current_motor(jnt_command_current_vec(TEST_JOINT));
 
             // Incrementing identifier ensures actuators can reject out of time frames
             base_command.set_frame_id(base_command.frame_id() + 1);
@@ -370,6 +378,18 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
                 break;
             }
 
+            parameters[iteration_count][0]  = jnt_ctrl_torque_vec[TEST_JOINT];
+            parameters[iteration_count][1]  = jnt_position_vec[TEST_JOINT];
+            parameters[iteration_count][2]  = jnt_velocity_vec[TEST_JOINT];
+            parameters[iteration_count][3]  = jnt_torque_vec[TEST_JOINT];
+            parameters[iteration_count][4]  = jnt_command_current_vec[TEST_JOINT];
+            parameters[iteration_count][5]  = jnt_current_vec[TEST_JOINT];
+            parameters[iteration_count][6]  = friction_torque_vec[TEST_JOINT];  
+            parameters[iteration_count][7]  = nominal_pos_vec[TEST_JOINT];
+            parameters[iteration_count][8]  = nominal_vel_vec[TEST_JOINT];
+            parameters[iteration_count][9]  = initial_position_vec[TEST_JOINT];
+            parameters[iteration_count][10] = initial_velocity_vec[TEST_JOINT];
+
             // Enforce the constant loop time and count how many times the loop was late
             if (enforce_loop_frequency(DT_MICRO) != 0) control_loop_delay_count++;
         }
@@ -397,12 +417,30 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
     // Wait for a bit
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    // std::cout << "last current command: " << jnt_command_current(test_joint_index) << std::endl;
+    try
+    {   
+        for (int i = 0; i < iteration_count; i++)
+        {
+            for (int j = 0; j < PARAMETERS_COUNT; j++)
+                myfile << parameters[i][j] << " ";
+            myfile <<"\n";
+        }  
+    
+        myfile.close();
+    }
+    catch(const std::exception& e)
+    {
+        //comment a message
+        std::cerr << e.what() << '\n';
+    }
+    
+    // std::cout << "last current command: " << jnt_command_current(TEST_JOINT) << std::endl;
     std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count()
-              << "   Loop iteration count: "                           << iteration_count
-              << "   Control Loop delay count: "                       << control_loop_delay_count << std::endl;
+              << "   Loop iteration count: "                             << iteration_count
+              << "   Control Loop delay count: "                         << control_loop_delay_count << std::endl;
 
     return return_status;
+
 }
 
 int main(int argc, char **argv)
