@@ -1,1 +1,0 @@
-/usr/bin/c++  -O3 -DNDEBUG   CMakeFiles/main.dir/src/main_kinova.cpp.o CMakeFiles/main.dir/src/friction_observer.cpp.o  -o main  -lpthread ../kortex_api/lib/release/libKortexApiCpp.a 

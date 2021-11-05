@@ -1,3 +1,0 @@
-/home/mqadeer/Desktop/Uni/semester 2/SDP/ws21-joint-friction-model (copy)/build/CMakeFiles/rebuild_cache.dir
-/home/mqadeer/Desktop/Uni/semester 2/SDP/ws21-joint-friction-model (copy)/build/CMakeFiles/edit_cache.dir
-/home/mqadeer/Desktop/Uni/semester 2/SDP/ws21-joint-friction-model (copy)/build/CMakeFiles/main.dir
