@@ -33,6 +33,7 @@ SOFTWARE.
 #include <cmath>
 #include <stdlib.h>
 #include <vector>
+using namespace std;
 
 #define DEG_TO_RAD(x) (x) * 3.14159265358979323846 / 180.0
 #define RAD_TO_DEG(x) (x) * 180.0 / 3.14159265358979323846
@@ -106,7 +107,7 @@ public:
      * \param nominal_motor_velocity  The estimated motor velocity that should be used by the outer controller instead of the measured velocity, in the next control cycle.
      */
     void getNominalState(Eigen::VectorXd &nominal_motor_position, Eigen::VectorXd &nominal_motor_velocity);
-
+    
 private:
     const double DT_SEC, FILTER_CONST;
     const int INTEGRATION_METHOD, OBSERVER_TYPE;

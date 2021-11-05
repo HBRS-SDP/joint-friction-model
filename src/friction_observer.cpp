@@ -181,3 +181,4 @@ void FrictionObserver::getNominalState(Eigen::VectorXd &nominal_motor_position, 
 
     nominal_motor_velocity = theta_dot_nominal;
 }
+
