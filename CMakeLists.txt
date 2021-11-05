@@ -5,16 +5,9 @@ cmake_minimum_required(VERSION 3.5)
 project(friction_estimation)
 
 set(CMAKE_INCLUDE_CURRENT_DIR   ON)
-set(CMAKE_VERBOSE_MAKEFILE      ON)
+set(CMAKE_VERBOSE_MAKEFILE      OFF)
 set(CMAKE_COLOR_MAKEFILE        ON)
-<<<<<<< HEAD
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-=======
 set(CMAKE_BUILD_TYPE Release)
->>>>>>> 800e6a002df8bbd21f9696354c1274d95e85ea6c
 
 # Activate C++ 11
 set (CMAKE_CXX_STANDARD 14)
@@ -51,11 +44,6 @@ include_directories(
 )
 
 link_libraries(pthread)
-link_libraries(${KORTEX_DIR}lib/release/libKortexApiCpp.a)
-add_executable(main
-  src/main_kinova.cpp
-  src/friction_observer.cpp 
-)
 
 add_executable(main
     src/main_kinova.cpp

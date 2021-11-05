@@ -179,6 +179,7 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
 
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
+    
     auto servoing_mode = k_api::Base::ServoingModeInformation();
 
     /////////////////////////////////////
@@ -415,12 +416,12 @@ int main(int argc, char **argv)
     std::cout << "Creating transport objects" << std::endl;
     auto transport = new k_api::TransportClientTcp();
     auto router = new k_api::RouterClient(transport, error_callback);
-    transport->connect(IP_ADDRESS, PORT);
+    // transport->connect(IP_ADDRESS, PORT);
 
     std::cout << "Creating transport real time objects" << std::endl;
     auto transport_real_time = new k_api::TransportClientUdp();
     auto router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
-    transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
+    // transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
     
     // Set session data connection information
     auto create_session_info = k_api::Session::CreateSessionInfo();
@@ -432,18 +433,19 @@ int main(int argc, char **argv)
     // Session manager service wrapper
     std::cout << "Creating sessions for communication" << std::endl;
     auto session_manager = new k_api::SessionManager(router);
-    session_manager->CreateSession(create_session_info);
+    // session_manager->CreateSession(create_session_info);
     auto session_manager_real_time = new k_api::SessionManager(router_real_time);
-    session_manager_real_time->CreateSession(create_session_info);
+    // session_manager_real_time->CreateSession(create_session_info);
     std::cout << "Sessions created" << std::endl;
 
     // Create services
     auto base = new k_api::Base::BaseClient(router);
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
     auto actuator_config = new k_api::ActuatorConfig::ActuatorConfigClient(router);
-
+    
     // Example core
-    example_move_to_home_position(base);
+    std::cout << "starting example" << std::endl;
+    // example_move_to_home_position(base);
     auto isOk = example_cyclic_torque_control(base, base_cyclic, actuator_config);
     if (!isOk)
     {
