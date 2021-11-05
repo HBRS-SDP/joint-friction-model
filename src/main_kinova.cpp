@@ -10,7 +10,7 @@
 #include <eigen3/Eigen/Core>
 #include <KDetailedException.h>
 #include <friction_observer.hpp>
-// #include </home/mqadeer/Desktop/Uni/semester 2/SDP/ws21-joint-friction-model (copy)/include/friction_observer.hpp>
+// #include </home/mqadeer/Desktop/Uni/semester 2/SDP/ws21-joint-friction-model/include/friction_observer.hpp>
 
 #include <BaseClientRpc.h>
 #include <BaseCyclicClientRpc.h>
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
     auto transport_real_time = new k_api::TransportClientUdp();
     auto router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
     transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
-
+    
     // Set session data connection information
     auto create_session_info = k_api::Session::CreateSessionInfo();
     create_session_info.set_username("admin");

@@ -66,7 +66,6 @@ FrictionObserver::FrictionObserver(const int num_joints, const double dt_sec, co
 int FrictionObserver::setInitialState(const Eigen::VectorXd &motor_position, const Eigen::VectorXd &motor_velocity)
 {
     if (motor_position.rows() != NUM_JOINTS || motor_velocity.rows() != NUM_JOINTS) return -1;
-
     theta_nominal           = motor_position;
     motor_flat_position     = motor_position;
     previous_motor_position = motor_position;
@@ -101,7 +100,7 @@ int FrictionObserver::estimateFrictionTorque(const Eigen::VectorXd &motor_positi
     }
 
     // Nominal acceleration: (difference between commanded and measured torque) times rotor inertia
-    theta_dot_dot_nominal = (joint_torque_cmd - joint_torque_measured).cwiseProduct(ROTOR_INERTIA.cwiseInverse());
+    theta_dot_dot_nominal = (joint_torque_cmd - joint_torque_measured ).cwiseProduct(ROTOR_INERTIA.cwiseInverse());
 
     // Solve (integrate) the second-order ODE (motor acceleration) to calculate nominal motor velocity and position
     if (INTEGRATION_METHOD == integration_method::SYMPLECTIC_EULER)
@@ -141,12 +140,12 @@ int FrictionObserver::estimateFrictionTorque(const Eigen::VectorXd &motor_positi
         else if (motor_position(i) - previous_motor_position(i) >= DEG_TO_RAD(360.0) - 2.7) previous_motor_position(i) += DEG_TO_RAD(360.0);
     }
     
-    motor_flat_position += motor_position - previous_motor_position;
-    previous_motor_position = motor_position;
+    motor_flat_position += motor_position  - previous_motor_position;
+    previous_motor_position = motor_position ;
     
     // Calculate state error
     error_nominal     = theta_nominal     - motor_flat_position; // position error
-    error_dot_nominal = theta_dot_nominal - motor_velocity; // velocity error
+    error_dot_nominal = theta_dot_nominal - motor_velocity ; // velocity error
 
     // Calculate friction estimate: PD type
     estimated_friction = COMMON_GAIN.cwiseProduct(error_dot_nominal + GAIN_LP.cwiseProduct(error_nominal));
@@ -162,7 +161,7 @@ int FrictionObserver::estimateFrictionTorque(const Eigen::VectorXd &motor_positi
     filtered_friction = FILTER_CONST * filtered_friction + (1.0 - FILTER_CONST) * estimated_friction;
 
     // Write function output
-    observed_joint_friction = filtered_friction;
+    observed_joint_friction  = filtered_friction;
 
     // Increase observer's loop count
     integration_count++;
@@ -183,4 +182,18 @@ void FrictionObserver::getNominalState(Eigen::VectorXd &nominal_motor_position, 
     }
 
     nominal_motor_velocity = theta_dot_nominal;
+}
+
+//Save data to a TXT file
+void FrictionObserver::saveData(const Eigen::VectorXd &motor_position, const Eigen::VectorXd &motor_velocity, const Eigen::VectorXd &joint_torque_cmd, const Eigen::VectorXd &joint_torque_measured, Eigen::VectorXd &observed_joint_friction)
+{
+    ofstream myfile;
+    myfile.open ("readings.txt");
+    myfile << "Writing this to a file.\n";
+    myfile << motor_position <<".\n";
+    myfile << motor_velocity <<".\n";
+    myfile << joint_torque_cmd <<".\n";
+    myfile << joint_torque_measured <<".\n";
+    myfile << observed_joint_friction <<".\n";
+    myfile.close();
 }
