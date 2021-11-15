@@ -21,7 +21,7 @@
 #include <TransportClientTcp.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
-const int SECOND = 1000000;
+const int SECOND = 1000000; // num of microsec. in one sec.
 
 namespace k_api = Kinova::Api;
 
@@ -141,10 +141,10 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
 
 bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
-    constexpr int RATE_HZ = 500; // Hz
+    constexpr int RATE_HZ = 900; // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
-    constexpr double task_time_limit_sec = 6.5;
+    constexpr double task_time_limit_sec = 10.0;
     constexpr int estimated_loop_iterations = static_cast<int> (task_time_limit_sec * RATE_HZ + 20); //aprox number of iterations +20 
 
     int iteration_count = 0;
@@ -190,7 +190,7 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
 
     //Open a file (csv)
     ofstream myfile;
-    myfile.open("readings.csv"); 
+    myfile.open("../data/readings.csv"); 
 
     // Clearing faults
     try
@@ -243,7 +243,6 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
 
         compensate_joint_friction = true;
         double error = 0.0, previous_error = 0.0;
-        const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
 
         // Initialize friction estimator (feedforward component)
         for (int i = 0; i < ACTUATOR_COUNT; i++)
@@ -257,19 +256,19 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
         initial_velocity_vec = jnt_velocity_vec;
 
         // Velocity control
-        double theta_dot_desired = 0.1;
+        double theta_dot_desired = 1.3;
         if      (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
         else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
 
         // ##########################################################################
         // Real-time loop
         // ##########################################################################
-        while (total_time_sec.count() < task_time_limit_sec)
+        const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
+        while (total_time_sec.count() / SECOND < task_time_limit_sec)
         {
             iteration_count++;
             loop_start_time = std::chrono::steady_clock::now();
             total_time_sec = std::chrono::duration<double, std::micro>(loop_start_time - control_start_time_sec);
-            // total_time_sec = iteration_count * DT_SEC;
 
             try
             {
@@ -378,17 +377,15 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
                 break;
             }
 
-            parameters[iteration_count][0]  = jnt_ctrl_torque_vec[TEST_JOINT];
-            parameters[iteration_count][1]  = jnt_position_vec[TEST_JOINT];
-            parameters[iteration_count][2]  = jnt_velocity_vec[TEST_JOINT];
-            parameters[iteration_count][3]  = jnt_torque_vec[TEST_JOINT];
-            parameters[iteration_count][4]  = jnt_command_current_vec[TEST_JOINT];
-            parameters[iteration_count][5]  = jnt_current_vec[TEST_JOINT];
-            parameters[iteration_count][6]  = friction_torque_vec[TEST_JOINT];  
-            parameters[iteration_count][7]  = nominal_pos_vec[TEST_JOINT];
-            parameters[iteration_count][8]  = nominal_vel_vec[TEST_JOINT];
-            parameters[iteration_count][9]  = initial_position_vec[TEST_JOINT];
-            parameters[iteration_count][10] = initial_velocity_vec[TEST_JOINT];
+            parameters[iteration_count-1][0]  = jnt_ctrl_torque_vec[TEST_JOINT];
+            parameters[iteration_count-1][1]  = jnt_position_vec[TEST_JOINT];
+            parameters[iteration_count-1][2]  = jnt_velocity_vec[TEST_JOINT];
+            parameters[iteration_count-1][3]  = jnt_torque_vec[TEST_JOINT];
+            parameters[iteration_count-1][4]  = jnt_command_current_vec[TEST_JOINT];
+            parameters[iteration_count-1][5]  = jnt_current_vec[TEST_JOINT];
+            parameters[iteration_count-1][6]  = friction_torque_vec[TEST_JOINT];
+            parameters[iteration_count-1][7]  = nominal_pos_vec[TEST_JOINT];
+            parameters[iteration_count-1][8]  = nominal_vel_vec[TEST_JOINT];
 
             // Enforce the constant loop time and count how many times the loop was late
             if (enforce_loop_frequency(DT_MICRO) != 0) control_loop_delay_count++;
@@ -433,14 +430,13 @@ bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyc
         //comment a message
         std::cerr << e.what() << '\n';
     }
-    
+
     // std::cout << "last current command: " << jnt_command_current(TEST_JOINT) << std::endl;
-    std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count()
+    std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count() / SECOND
               << "   Loop iteration count: "                             << iteration_count
               << "   Control Loop delay count: "                         << control_loop_delay_count << std::endl;
 
     return return_status;
-
 }
 
 int main(int argc, char **argv)
