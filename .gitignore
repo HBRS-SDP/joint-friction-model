@@ -1,3 +1,4 @@
 build/*
 kortex_api/*
 .vscode/*
+.ipynb_checkpoints/*
