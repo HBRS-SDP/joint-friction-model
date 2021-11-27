@@ -1,6 +1,5 @@
 #include "friction_controller.hpp"  
 
-namespace k_api = Kinova::Api;
 #define ACTUATOR_COUNT 7
 #define DEG_TO_RAD(x) (x) * 3.14159265358979323846 / 180.0
 #define RAD_TO_DEG(x) (x) * 180.0 / 3.14159265358979323846
@@ -23,7 +22,7 @@ friction_controller::~friction_controller()
 }
 
 //Make sure that the control loop runs exactly with the specified frequency
-int enforce_loop_frequency(const int dt)
+int friction_controller::enforce_loop_frequency(const int dt)
 {
     loop_interval = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - loop_start_time);
 
@@ -37,7 +36,7 @@ int enforce_loop_frequency(const int dt)
     else return -1; //Loop is too slow
 }
 
-bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
+bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
     constexpr int RATE_HZ = 900; // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
