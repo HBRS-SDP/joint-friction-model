@@ -79,7 +79,7 @@ public:
      *                        The filter can be turned off by setting this value to 0.
      * \param dt_sec Time-period at which user updates this estimation loop (in seconds).
      */
-    FrictionObserver(const int num_joints, const double dt_sec, const Eigen::VectorXd &rotor_inertia, const std::vector<double> &joint_velocity_limits,
+    FrictionObserver(const int num_joints, const double dt_sec, const Eigen::VectorXd &rotor_inertia,
                      const Eigen::VectorXd &gain_l, const Eigen::VectorXd &gain_lp, const Eigen::VectorXd &gain_li,
                      const int observer_type = friction_observer_type::PD, const int integration_method = integration_method::SYMPLECTIC_EULER,
                      const int state_integration_resent_count = 0, const double filter_constant = 0.0);
@@ -110,14 +110,12 @@ public:
      * \param nominal_motor_velocity  The estimated motor velocity that should be used by the outer controller instead of the measured velocity, in the next control cycle.
      */
     void getNominalState(Eigen::VectorXd &nominal_motor_position, Eigen::VectorXd &nominal_motor_velocity);
-    void saveData(const Eigen::VectorXd &motor_position, const Eigen::VectorXd &motor_velocity, const Eigen::VectorXd &joint_torque_cmd, const Eigen::VectorXd &joint_torque_measured, Eigen::VectorXd &observed_joint_friction);
-
+    
 private:
     const double DT_SEC, FILTER_CONST;
     const int INTEGRATION_METHOD, OBSERVER_TYPE;
     const unsigned int NUM_JOINTS, STATE_INTEGRATION_RESET_COUNT;
     const Eigen::VectorXd ROTOR_INERTIA, GAIN_L, GAIN_LP, GAIN_LI, COMMON_GAIN;
-    const std::vector<double> JOINT_VEL_LIMIT;
 
     unsigned int integration_count;
 

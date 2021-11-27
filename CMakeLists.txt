@@ -4,9 +4,9 @@ cmake_minimum_required(VERSION 3.5)
 # Name of the project
 project(friction_estimation)
 
-set(CMAKE_INCLUDE_CURRENT_DIR   ON)
+set(CMAKE_INCLUDE_CURRENT_DIR    ON)
 set(CMAKE_VERBOSE_MAKEFILE      OFF)
-set(CMAKE_COLOR_MAKEFILE        ON)
+set(CMAKE_COLOR_MAKEFILE         ON)
 set(CMAKE_BUILD_TYPE Release)
 
 # Activate C++ 11
@@ -48,4 +48,5 @@ link_libraries(pthread)
 add_executable(main
     src/main_kinova.cpp
     src/friction_observer.cpp
+    src/data_reader.cpp
 )

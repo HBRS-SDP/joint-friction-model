@@ -25,15 +25,13 @@ SOFTWARE.
 
 #include <friction_observer.hpp>
 
-
-
-FrictionObserver::FrictionObserver(const int num_joints, const double dt_sec, const Eigen::VectorXd &rotor_inertia, const std::vector<double> &joint_velocity_limits,
+FrictionObserver::FrictionObserver(const int num_joints, const double dt_sec, const Eigen::VectorXd &rotor_inertia,
                                    const Eigen::VectorXd &gain_l, const Eigen::VectorXd &gain_lp, const Eigen::VectorXd &gain_li, const int observer_type,
                                    const int integration_method, const int state_integration_resent_count, const double filter_constant):
     DT_SEC(dt_sec), FILTER_CONST(filter_constant),
     INTEGRATION_METHOD(integration_method), OBSERVER_TYPE(observer_type),
     NUM_JOINTS(num_joints), STATE_INTEGRATION_RESET_COUNT(state_integration_resent_count),
-    ROTOR_INERTIA(rotor_inertia), JOINT_VEL_LIMIT (joint_velocity_limits),
+    ROTOR_INERTIA(rotor_inertia),
     GAIN_L(gain_l), GAIN_LP(gain_lp), GAIN_LI(gain_li), COMMON_GAIN(-ROTOR_INERTIA.cwiseProduct(GAIN_L)),
     integration_count(0), motor_flat_position(NUM_JOINTS), previous_motor_position(NUM_JOINTS),
     theta_nominal(NUM_JOINTS), theta_dot_nominal(NUM_JOINTS), theta_dot_dot_nominal(NUM_JOINTS),
@@ -106,27 +104,12 @@ int FrictionObserver::estimateFrictionTorque(const Eigen::VectorXd &motor_positi
     if (INTEGRATION_METHOD == integration_method::SYMPLECTIC_EULER)
     {
         theta_dot_nominal += theta_dot_dot_nominal * DT_SEC;
-
-        // Saturate velocity
-        for (unsigned int i = 0; i < NUM_JOINTS; i++)
-        {
-            if      (theta_dot_nominal(i) >  JOINT_VEL_LIMIT[i]) theta_dot_nominal(i) =  JOINT_VEL_LIMIT[i];
-            else if (theta_dot_nominal(i) < -JOINT_VEL_LIMIT[i]) theta_dot_nominal(i) = -JOINT_VEL_LIMIT[i];
-        }
-
         theta_nominal     += theta_dot_nominal * DT_SEC; // Symplectic Euler method
     }
     else if (INTEGRATION_METHOD == integration_method::PREDICTOR_CORRECTOR)
     {
         theta_nominal     += (theta_dot_nominal - theta_dot_dot_nominal * DT_SEC / 2.0) * DT_SEC; // Trapezoidal method
         theta_dot_nominal += theta_dot_dot_nominal * DT_SEC;
-
-        // Saturate velocity
-        for (unsigned int i = 0; i < NUM_JOINTS; i++)
-        {
-            if      (theta_dot_nominal(i) >  JOINT_VEL_LIMIT[i]) theta_dot_nominal(i) =  JOINT_VEL_LIMIT[i];
-            else if (theta_dot_nominal(i) < -JOINT_VEL_LIMIT[i]) theta_dot_nominal(i) = -JOINT_VEL_LIMIT[i];
-        }
     }
     else assert(false);
 
@@ -184,16 +167,3 @@ void FrictionObserver::getNominalState(Eigen::VectorXd &nominal_motor_position, 
     nominal_motor_velocity = theta_dot_nominal;
 }
 
-//Save data to a TXT file
-void FrictionObserver::saveData(const Eigen::VectorXd &motor_position, const Eigen::VectorXd &motor_velocity, const Eigen::VectorXd &joint_torque_cmd, const Eigen::VectorXd &joint_torque_measured, Eigen::VectorXd &observed_joint_friction)
-{
-    ofstream myfile;
-    myfile.open ("readings.txt");
-    myfile << "Writing this to a file.\n";
-    myfile << motor_position <<".\n";
-    myfile << motor_velocity <<".\n";
-    myfile << joint_torque_cmd <<".\n";
-    myfile << joint_torque_measured <<".\n";
-    myfile << observed_joint_friction <<".\n";
-    myfile.close();
-}
