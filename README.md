@@ -1,19 +1,19 @@
 # ws21-joint-friction-model
 (WS 2021)
-
-## Members
+## Contributor
+### Members
 * Natalia Quiroga
 * Ritwik Sinha
 * Muhammad Qadeer Altaf
 
-## Coach
+### Coach
 * Djordje Vukcevic
 
 ## Description
 This repository is a submission for MAS Software Development Project. This project is about implementing a friction model for the
 Kinova Gen3 Arm . The friction model works in offline mode and can identify the amout of friction there is between the joints of the arm 
 and can predict future parameters of friction we might get depending on amount of usage of the arm. While calculating/predicting the friction 
-the model won't take temprature into consideration.
+the model won't take temperature into consideration.
 
 ## Usage
 To run the main_kinova file run these commands on terminal in the project directory.
