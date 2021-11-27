@@ -1,6 +1,6 @@
 # ws21-joint-friction-model
 (WS 2021)
-## Contributor
+## Contributors
 ### Members
 * Natalia Quiroga
 * Ritwik Sinha
@@ -11,7 +11,7 @@
 
 ## Description
 This repository is a submission for MAS Software Development Project. This project is about implementing a friction model for the
-Kinova Gen3 Arm . The friction model works in offline mode and can identify the amout of friction there is between the joints of the arm 
+Kinova Gen3 Arm. The friction model works in offline mode and can identify the amout of friction there is between the joints of the arm 
 and can predict future parameters of friction we might get depending on amount of usage of the arm. While calculating/predicting the friction 
 the model won't take temperature into consideration.
 
@@ -27,7 +27,7 @@ $./main
 
 ```
 ## Requirement 
-Kinova Api is required in order to work with this project, follow this link and complete all requirements
+Kinova Api is required in order to work with this project, follow this link and complete all requirements.
 
 ```
 https://github.com/Kinovarobotics/kortex
