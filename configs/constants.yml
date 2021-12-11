@@ -1,0 +1,7 @@
+
+
+offline_mode: True  
+
+RATE_HZ: 900
+PARAMETERS_COUNT: 7
+task_time_limit_sec: 10  # in seconds 

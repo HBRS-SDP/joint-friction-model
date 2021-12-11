@@ -18,6 +18,7 @@
 #include <TransportClientTcp.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
+#include<yaml/Yaml.hpp>
 
 namespace k_api = Kinova::Api;
 
@@ -119,16 +120,25 @@ int main(int argc, char **argv)
     // Create API objects
     
     auto error_callback = [](k_api::KError err){ cout << "_________ callback error _________" << err.toString(); };
+
+    Yaml::Node root;
+    Yaml::Parse(root, "../configs/constants.yml");
+    bool offline_mode = root["offline_mode"].As<bool>();
+
     
     std::cout << "Creating transport objects" << std::endl;
     auto transport = new k_api::TransportClientTcp();
     auto router = new k_api::RouterClient(transport, error_callback);
-    // transport->connect(IP_ADDRESS, PORT);
+    if(!offline_mode){
+        transport->connect(IP_ADDRESS, PORT);
+    }
 
     std::cout << "Creating transport real time objects" << std::endl;
     auto transport_real_time = new k_api::TransportClientUdp();
     auto router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
-    // transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
+    if(!offline_mode){
+        transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
+    }
     
     // Set session data connection information
     auto create_session_info = k_api::Session::CreateSessionInfo();
@@ -140,9 +150,15 @@ int main(int argc, char **argv)
     // Session manager service wrapper
     std::cout << "Creating sessions for communication" << std::endl;
     auto session_manager = new k_api::SessionManager(router);
-    // session_manager->CreateSession(create_session_info);
+    if(!offline_mode){
+        session_manager->CreateSession(create_session_info);
+    }
+    // 
     auto session_manager_real_time = new k_api::SessionManager(router_real_time);
-    // session_manager_real_time->CreateSession(create_session_info);
+    if(!offline_mode){
+        session_manager_real_time->CreateSession(create_session_info);
+    }
+    // 
     std::cout << "Sessions created" << std::endl;
 
     // Create services
