@@ -25,6 +25,9 @@ SOFTWARE.
 
 #ifndef FRICTION_OBSERVER_HPP
 #define FRICTION_OBSERVER_HPP
+// #include <constants.hpp>
+// #include <kdl_eigen_conversions.hpp>
+// #include <kdl/frames_io.hpp>
 #include <eigen3/Eigen/Core>
 #include <iostream>
 #include <sstream>
