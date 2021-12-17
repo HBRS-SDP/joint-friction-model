@@ -1,10 +1,10 @@
 
 #include<data_collector.hpp>
 #include<yaml/Yaml.hpp>
-
+#include<iostream>
 using namespace std;
 using namespace Yaml;
-
+using namespace std;
 
 
 // Data_collector::Data_collector() {     // Constructor
@@ -28,6 +28,7 @@ void Data_collector::get_data(float jnt_ctrl_torque_vec,float jnt_position_vec,f
     
 }
 
+
 // Function to save data in csv file
 void Data_collector:: save_data(){
     Yaml::Node root;
@@ -36,6 +37,7 @@ void Data_collector:: save_data(){
     int rows=this->vec.size();
     int counter=1;
     ofstream myfile;
+
     myfile.open("../data/readings.csv");
     
     for (int i = 0; i < rows; i++)
@@ -48,7 +50,10 @@ void Data_collector:: save_data(){
             continue;
         }
         counter++;
-    }  
+    } 
+
+    
+
     
     myfile.close();
 

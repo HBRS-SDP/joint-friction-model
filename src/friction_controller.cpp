@@ -56,6 +56,7 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     bool return_status = true;
     bool compensate_joint_friction = true;
 
+
     // Low level velocity limits (official Kinova): 2.618 rad/s (149 deg/s) for small and 1.745 rad/s (99 deg/s) for large joints
     const std::vector<double> joint_velocity_limits {1.74, 1.74, 1.74, 1.74, 2.6, 2.6, 2.6};
 
