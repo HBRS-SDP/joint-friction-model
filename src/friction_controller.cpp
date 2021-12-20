@@ -54,7 +54,7 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     int iteration_count = 0;
     int control_loop_delay_count = 0;
     bool return_status = true;
-    bool compensate_joint_friction = true;
+    bool compensate_joint_friction = false;
 
 
     // Low level velocity limits (official Kinova): 2.618 rad/s (149 deg/s) for small and 1.745 rad/s (99 deg/s) for large joints
@@ -139,7 +139,6 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::CURRENT);
         actuator_config->SetControlMode(control_mode_message, 7);
 
-        compensate_joint_friction = true;
         double error = 0.0, previous_error = 0.0;
 
         // Initialize friction estimator (feedforward component)
@@ -161,6 +160,9 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
         // ##########################################################################
         // Real-time loop
         // ##########################################################################
+
+        jnt_ctrl_torque_vec(TEST_JOINT) = 0.000;
+        Eigen::VectorXd starting_position_value = jnt_position_vec;
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
         while (total_time_sec.count() / SECOND < task_time_limit_sec)
         {
@@ -223,9 +225,15 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
 
             // PD control
-            jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
-            jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
-            previous_error = error;
+            // jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
+            // jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+            // previous_error = error;
+            
+            if ( ((starting_position_value*100000)/100000) == ((jnt_position_vec*100000)/100000)){
+
+            jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.001 ; // P controller
+            
+            }
 
             // Estimate friction in joints
             if (compensate_joint_friction)
