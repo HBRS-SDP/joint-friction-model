@@ -1,10 +1,13 @@
 #include <friction_controller.hpp>
 #include <data_collector.hpp>
+#include<yaml/Yaml.hpp>
+
+using namespace Yaml;
 
 #define ACTUATOR_COUNT 7
 #define DEG_TO_RAD(x) (x) * 3.14159265358979323846 / 180.0
 #define RAD_TO_DEG(x) (x) * 180.0 / 3.14159265358979323846
-#define PARAMETERS_COUNT 9
+// #define PARAMETERS_COUNT 9
 #define TEST_JOINT 6
 const int SECOND = 1000000; // num of microsec. in one sec.
 
@@ -40,17 +43,19 @@ int friction_controller::enforce_loop_frequency(const int dt)
 bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
     Data_collector data_collector_obj;
-
-    constexpr int RATE_HZ = 900; // Hz
+    Yaml::Node root;
+    Yaml::Parse(root, "../configs/constants.yml");
+    
+    const int RATE_HZ = root["RATE_HZ"].As<int>(); // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
-    constexpr double task_time_limit_sec = 10.0;
-    // constexpr int estimated_loop_iterations = static_cast<int> (task_time_limit_sec * RATE_HZ + 20); //aprox number of iterations +20 
+    const double task_time_limit_sec = root["task_time_limit_sec"].As<double>();
     
     int iteration_count = 0;
     int control_loop_delay_count = 0;
     bool return_status = true;
     bool compensate_joint_friction = true;
+
 
     // Low level velocity limits (official Kinova): 2.618 rad/s (149 deg/s) for small and 1.745 rad/s (99 deg/s) for large joints
     const std::vector<double> joint_velocity_limits {1.74, 1.74, 1.74, 1.74, 2.6, 2.6, 2.6};
@@ -85,7 +90,6 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     k_api::BaseCyclic::Command  base_command;
     auto servoing_mode = k_api::Base::ServoingModeInformation();
     
-
     // Clearing faults
     try
     {

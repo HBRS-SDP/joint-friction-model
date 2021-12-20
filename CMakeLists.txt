@@ -50,4 +50,5 @@ add_executable(main
     src/friction_observer.cpp
     src/data_collector.cpp
     src/friction_controller.cpp
+    yaml/Yaml.cpp
 )
