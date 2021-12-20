@@ -229,10 +229,13 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             // jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
             // previous_error = error;
             
-            if ( ((starting_position_value*100000)/100000) == ((jnt_position_vec*100000)/100000)){
-
-            jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.001 ; // P controller
+            if ( ((starting_position_value*100000)/100000) != ((jnt_position_vec*100000)/100000)){
             
+                data_collector_obj.save_static_torques_values(jnt_ctrl_torque_vec(TEST_JOINT));
+                break;
+            }
+            else{
+                jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.001 ; 
             }
 
             // Estimate friction in joints

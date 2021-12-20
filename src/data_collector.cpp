@@ -59,12 +59,28 @@ void Data_collector:: save_data(){
 
 }
 
-void Data_collector :: get_breacking_point(){
+// void Data_collector :: save_static_torques_values(double torque_value){
 
+//     this->static_friction_torque_values.push_back(torque_value);
 
-}
+// }
 
+// void Data_collector :: save_static_torques_file{
+//     myfile.open("../data/static_torque_values.csv");
+    
+//     for (int i = 0; i < rows; i++)
+//     {
 
+//         myfile << this->vec[i]<< " ";
+//         if(counter==parameter_count){
+//             counter=1;
+//             myfile <<"\n";
+//             continue;
+//         }
+//         counter++;
+//     }     
+//     myfile.close();
+// }
 
 
 
