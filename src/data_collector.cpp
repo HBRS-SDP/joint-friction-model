@@ -59,6 +59,11 @@ void Data_collector:: save_data(){
 
 }
 
+void Data_collector :: get_breacking_point(){
+
+
+}
+
 
 
 
