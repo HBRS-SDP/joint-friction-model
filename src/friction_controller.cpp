@@ -1,6 +1,7 @@
 #include <friction_controller.hpp>
 #include <data_collector.hpp>
 #include<yaml/Yaml.hpp>
+#include <cmath>
 
 using namespace Yaml;
 
@@ -40,12 +41,19 @@ int friction_controller::enforce_loop_frequency(const int dt)
     else return -1; //Loop is too slow
 }
 
+
+bool compare_float(double x, double y, double epsilon = 0.00001)
+    {
+    return (fabs(x - y) < epsilon); 
+    }
+
+
 bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
     Data_collector data_collector_obj;
     Yaml::Node root;
     Yaml::Parse(root, "../configs/constants.yml");
-    
+
     const int RATE_HZ = root["RATE_HZ"].As<int>(); // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
@@ -161,8 +169,8 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
         // Real-time loop
         // ##########################################################################
 
-        jnt_ctrl_torque_vec(TEST_JOINT) = 0.000;
-        Eigen::VectorXd starting_position_value = jnt_position_vec;
+        jnt_ctrl_torque_vec(TEST_JOINT) = 0.0000;
+        double starting_position_value = jnt_position_vec(TEST_JOINT);
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
         while (total_time_sec.count() / SECOND < task_time_limit_sec)
         {
@@ -228,16 +236,14 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             // jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
             // jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
             // previous_error = error;
-            
-            if ( ((starting_position_value*100000)/100000) != ((jnt_position_vec*100000)/100000)){
-            
-                data_collector_obj.save_static_torques_values(jnt_ctrl_torque_vec(TEST_JOINT));
+
+            data_collector_obj.save_static_torques_values(jnt_ctrl_torque_vec(TEST_JOINT));
+            if (!compare_float(starting_position_value,jnt_position_vec(TEST_JOINT))){
                 break;
             }
             else{
-                jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.001 ; 
+                jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.0001 ;
             }
-
             // Estimate friction in joints
             if (compensate_joint_friction)
             {
@@ -294,13 +300,18 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             if (enforce_loop_frequency(DT_MICRO) != 0) control_loop_delay_count++;
         }
         //function to save data to csv file
-        data_collector_obj.save_data();
+        
 
         // Set actuators back in position 
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+
+        data_collector_obj.create_static_torque_value_file();
+        data_collector_obj.save_data();
+        
         for (int actuator_id = 1; actuator_id < ACTUATOR_COUNT + 1; actuator_id++)
             actuator_config->SetControlMode(control_mode_message, actuator_id);
     }
+    
     catch (k_api::KDetailedException& ex)
     {
         std::cout << "API error: " << ex.what() << std::endl;

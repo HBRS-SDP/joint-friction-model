@@ -50,37 +50,29 @@ void Data_collector:: save_data(){
             continue;
         }
         counter++;
-    } 
-
-    
-
-    
+    }     
     myfile.close();
+}
+
+void Data_collector :: save_static_torques_values(double static_torque_value){
+
+    this->static_friction_torque_values.push_back(static_torque_value);
 
 }
 
-// void Data_collector :: save_static_torques_values(double torque_value){
+void Data_collector :: create_static_torque_value_file(){
 
-//     this->static_friction_torque_values.push_back(torque_value);
-
-// }
-
-// void Data_collector :: save_static_torques_file{
-//     myfile.open("../data/static_torque_values.csv");
+    int rows = this->static_friction_torque_values.size();
+    ofstream myfile;
+    myfile.open("../data/static_torque_values.csv");
     
-//     for (int i = 0; i < rows; i++)
-//     {
-
-//         myfile << this->vec[i]<< " ";
-//         if(counter==parameter_count){
-//             counter=1;
-//             myfile <<"\n";
-//             continue;
-//         }
-//         counter++;
-//     }     
-//     myfile.close();
-// }
+    for (int i = 0; i < rows; i++)
+    {
+        // cout<<this->static_friction_torque_values[i]<<endl;
+        myfile << this->static_friction_torque_values[i]<< " ";
+    }     
+    myfile.close();
+}
 
 
 

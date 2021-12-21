@@ -27,6 +27,7 @@ class Data_collector {     // The class
     void get_params(int estimated_loop_iterations);
     void testing();
     void save_static_torques_values(double torque_value);
+    void create_static_torque_value_file();
 };
 
 #endif
