@@ -40,7 +40,7 @@ https://eigen.tuxfamily.org/index.php?title=Main_Page
 ## Acknoledgements
 
 We would like to thank our project coach MSc. Djordje Vukcevic for introducing and explaining the problem formulation for the project.
-His timely guidance and help are the pivot parameters for the motivation to reach the goal of this project.    
+His timely guidance and help are the pivot parameters for the motivation to reach the goal of this project.
 
 ## References
 
