@@ -22,7 +22,6 @@ class Data_collector {     // The class
     // Data_collector();
     // ~Data_collector(){};
     void get_data(float jnt_ctrl_torque_vec,float jnt_position_vec,float jnt_velocity_vec,float jnt_torque_vec,float jnt_command_current_vec,float jnt_current_vec,float friction_torque_vec,float nominal_pos_vec,float nominal_vel_vec);
-
     void save_data();
     void get_params(int estimated_loop_iterations);
     void testing();
