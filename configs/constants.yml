@@ -2,6 +2,12 @@
 
 offline_mode: True  
 
+arm_position_configuration: home
 RATE_HZ: 900
 PARAMETERS_COUNT: 7
 task_time_limit_sec: 10  # in seconds 
+test_joint: 6
+actuator_count: 7
+
+get_static_torque: True
+static_torque_test: True

@@ -25,9 +25,12 @@ class Data_collector {     // The class
 
     void save_data();
     void get_params(int estimated_loop_iterations);
-    void testing();
     void save_static_torques_values(double torque_value);
+    tuple<bool,double,double,double,double,bool> get_static_torques_values(bool start_test,double jnt_ctrl_torque_vec,double jnt_velocity_vec,double error,double previous_error,double theta_dot_desired,double nominal_vel_vec,double DT_SEC);
     void create_static_torque_value_file();
+    tuple<bool,double,double,bool> testing();
+
+    
 };
 
 #endif

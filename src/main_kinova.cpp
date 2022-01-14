@@ -168,7 +168,9 @@ int main(int argc, char **argv)
     
     // Example core
     // example_move_to_home_position(base);
+    
     auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
+
     if (!isOk)
     {
         std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
