@@ -23,9 +23,7 @@ void Data_collector::get_data(float jnt_ctrl_torque_vec,float jnt_position_vec,f
     this->vec.push_back(jnt_torque_vec);
     this->vec.push_back(jnt_command_current_vec);
     this->vec.push_back(jnt_current_vec);
-    this->vec.push_back(friction_torque_vec);
-    // this->vec.push_back(nominal_pos_vec);
-    // this->vec.push_back(nominal_vel_vec);  
+    this->vec.push_back(friction_torque_vec); 
     
 }
 
