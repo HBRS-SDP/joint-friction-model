@@ -61,6 +61,10 @@ std::function<void(k_api::Base::ActionNotification)>
 void example_move_to_home_position(k_api::Base::BaseClient* base)
 {
     // Make sure the arm is in Single Level Servoing before executing an Action
+    Yaml::Node root;
+    Yaml::Parse(root, "../configs/constants.yml");
+    string arm_position_configuration = root["arm_position_configuration"].As<string>();
+
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
@@ -76,7 +80,7 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
 
     for (auto action : action_list.action_list()) 
     {
-        if (action.name() == "Home")
+        if (action.name() == arm_position_configuration)
         {
             action_handle = action.handle();
         }
@@ -167,7 +171,11 @@ int main(int argc, char **argv)
     auto actuator_config = new k_api::ActuatorConfig::ActuatorConfigClient(router);
     
     // Example core
-    // example_move_to_home_position(base);
+
+    if(!offline_mode){
+        example_move_to_home_position(base);
+    }
+    
   
     int k=100;
     while(k<=100){

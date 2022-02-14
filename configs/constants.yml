@@ -2,7 +2,7 @@
 
 offline_mode: True  
 
-arm_position_configuration: home
+arm_position_configuration: Home
 RATE_HZ: 900
 PARAMETERS_COUNT: 7
 task_time_limit_sec: 10  # in seconds 
