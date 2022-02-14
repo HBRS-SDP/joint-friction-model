@@ -62,17 +62,17 @@ bool equal(double x, double y, double epsilon = 0.00001)
 
 tuple<bool,double,double,double,double,bool> Data_collector :: get_static_torques_values(bool start_test,double jnt_ctrl_torque_vec,double jnt_velocity_vec, double error,double previous_error,double theta_dot_desired,double nominal_vel_vec,double DT_SEC){
 
-    struct retVals {      
-        bool b1;
-        double i1, i2,i3,i4;
-        bool b2;
-    };
+    // struct retVals {      
+    //     bool b1;
+    //     double i1, i2,i3,i4;
+    //     bool b2;
+    // };
     bool test_start=start_test;
     double l_error = error;
     double l_previous_error = previous_error;
 
     if (test_start){
-        if (!equal(0.0,jnt_velocity_vec), 0.0085){
+        if (!equal(0.0,jnt_velocity_vec, 0.0085)){
             this->save_static_torques_values(jnt_ctrl_torque_vec);
             printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec, jnt_velocity_vec);
             return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,true};
