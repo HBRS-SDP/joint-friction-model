@@ -48,6 +48,7 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     const double task_time_limit_sec = root["task_time_limit_sec"].As<double>();
     bool get_static_torque= root["get_static_torque"].As<bool>();
     bool start_test = root["static_torque_test"].As<bool>();
+    string arm_position_configuration= root["arm_position_configuration"].As<string>();
 
     int iteration_count = 0;
     int control_loop_delay_count = 0;
@@ -88,7 +89,17 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     k_api::BaseCyclic::Command  base_command;
     auto servoing_mode = k_api::Base::ServoingModeInformation();
     
+    // checking arm position configuration name
+    try {
+        if ( arm_position_configuration != "Home" || arm_position_configuration != "Zero"){
+            throw std::invalid_argument( "unknown position configuration name" );
+        }
+    }
+    catch(const std::invalid_argument& e){
+        return false;
+    }
     // Clearing faults
+
     try
     {
         base->ClearFaults();
@@ -220,9 +231,12 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
 
             for (int i = 0; i < ACTUATOR_COUNT; i++)
             {
-                if(root["arm_position_configuration"].As<string>() == "home" ){
+                if (arm_position_configuration == "Home" ) {
                     if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(home_configuration[i]);
                 }
+                else if(arm_position_configuration == "Zero") {
+                    if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(zero_configuration[i]);
+                }    
             }
             base_command.mutable_actuators(TEST_JOINT)->set_position(base_feedback.actuators(TEST_JOINT).position());
             
@@ -334,7 +348,8 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
         // Set actuators back in position 
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
 
-        data_collector_obj.create_static_torque_value_file();
+        if (get_static_torque) data_collector_obj.create_static_torque_value_file();
+
         data_collector_obj.save_data();
         
         for (int actuator_id = 1; actuator_id < ACTUATOR_COUNT + 1; actuator_id++)
