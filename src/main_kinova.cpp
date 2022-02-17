@@ -185,11 +185,11 @@ int main(int argc, char **argv)
         auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
         k--;
     
-    if (!isOk)
+        if (!isOk)
         {
             std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
         }
-    sleep_until(system_clock::now() + 5s);
+        sleep_until(system_clock::now() + 5s);
     }
     // Close API session
     session_manager->CloseSession();
