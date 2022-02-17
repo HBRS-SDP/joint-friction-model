@@ -80,7 +80,7 @@ tuple<bool,double,double,double,double,bool> Data_collector :: get_static_torque
         }
         else{
             jnt_ctrl_torque_vec = jnt_ctrl_torque_vec + 0.01;
-            this->save_static_torques_values(jnt_ctrl_torque_vec);
+            // this->save_static_torques_values(jnt_ctrl_torque_vec);
             return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
 
         }

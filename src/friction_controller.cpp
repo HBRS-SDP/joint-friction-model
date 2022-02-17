@@ -92,7 +92,7 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     // checking arm position configuration name
     try {
         if ( arm_position_configuration != "Home" || arm_position_configuration != "Zero"){
-            throw std::invalid_argument( "unknown position configuration name" );
+            throw std::invalid_argument( "unknown position configuration name " );
         }
     }
     catch(const std::invalid_argument& e){

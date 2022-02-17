@@ -3,7 +3,7 @@
 #include <vector>
 #include <math.h>
 #include <stdlib.h> /* abs */
-
+#include <thread>
 #include <chrono>
 #include <time.h>
 #include <unistd.h>
@@ -21,6 +21,9 @@
 #include<yaml/Yaml.hpp>
 
 namespace k_api = Kinova::Api;
+using namespace std::this_thread;     // sleep_for, sleep_until
+using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
+using std::chrono::system_clock;
 
 #define IP_ADDRESS "192.168.1.10"
 
@@ -177,15 +180,16 @@ int main(int argc, char **argv)
     }
     
   
-    int k=100;
-    while(k<=100){
-    auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
-    k--;
+    int k=30;
+    while (k<=30) {
+        auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
+        k--;
     
     if (!isOk)
-    {
-        std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
-    }
+        {
+            std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
+        }
+    sleep_until(system_clock::now() + 5s);
     }
     // Close API session
     session_manager->CloseSession();
