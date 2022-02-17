@@ -179,18 +179,12 @@ int main(int argc, char **argv)
         example_move_to_home_position(base);
     }
     
-  
-    int k=30;
-    while (k<=30) {
-        auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
-        k--;
-    
-        if (!isOk)
-        {
-            std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
-        }
-        sleep_until(system_clock::now() + 5s);
+    auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);    
+    if (!isOk)
+    {
+        std::cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
     }
+    
     // Close API session
     session_manager->CloseSession();
     session_manager_real_time->CloseSession();

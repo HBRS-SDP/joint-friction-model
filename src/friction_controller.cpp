@@ -47,7 +47,8 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
     const double task_time_limit_sec = root["task_time_limit_sec"].As<double>();
     bool get_static_torque= root["get_static_torque"].As<bool>();
-    bool start_test = root["static_torque_test"].As<bool>();
+    bool get_dynamic_values= root["get_dynamic_values"].As<bool>();
+    bool start_test = root["static_torque_test"].As<bool>(); 
     string arm_position_configuration= root["arm_position_configuration"].As<string>();
 
     int iteration_count = 0;
@@ -171,186 +172,197 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
         // ##########################################################################
 
         if(get_static_torque){
-            jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
+            jnt_ctrl_torque_vec(TEST_JOINT) = 0.1;
             start_test = false;
         }
+
         double starting_position_value = jnt_position_vec(TEST_JOINT);
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
-        while (total_time_sec.count() / SECOND < task_time_limit_sec)
-        {
-            iteration_count++;
-            loop_start_time = std::chrono::steady_clock::now();
-            total_time_sec = std::chrono::duration<double, std::micro>(loop_start_time - control_start_time_sec);
+        
+        int iterator=1;
+        while(iterator<=50){
 
-            try
+            while (total_time_sec.count() / SECOND < task_time_limit_sec)
             {
-                base_feedback = base_cyclic->RefreshFeedback();
-            }
-            catch (Kinova::Api::KDetailedException& ex)
-            {
-                std::cout << "Kortex exception 1: " << ex.what() << std::endl;
+                iteration_count++;
+                loop_start_time = std::chrono::steady_clock::now();
+                total_time_sec = std::chrono::duration<double, std::micro>(loop_start_time - control_start_time_sec);
 
-                std::cout << "KError error_code 1: " << ex.getErrorInfo().getError().error_code() << std::endl;
-                std::cout << "KError sub_code 1: " << ex.getErrorInfo().getError().error_sub_code() << std::endl;
-                std::cout << "KError sub_string 1: " << ex.getErrorInfo().getError().error_sub_string() << std::endl;
-
-                // Error codes by themselves are not very verbose if you don't see their corresponding enum value
-                // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
-                std::cout << "Error code string equivalent 1: " << Kinova::Api::ErrorCodes_Name(Kinova::Api::ErrorCodes(ex.getErrorInfo().getError().error_code())) << std::endl;
-                std::cout << "Error sub-code string equivalent 1: " << Kinova::Api::SubErrorCodes_Name(Kinova::Api::SubErrorCodes(ex.getErrorInfo().getError().error_sub_code())) << std::endl;
-                break;
-            }
-            catch (std::runtime_error& ex2)
-            {
-                std::cout << "runtime error 1: " << ex2.what() << std::endl;
-                break;
-            }
-            catch(...)
-            {
-                std::cout << "Unknown error 1." << std::endl;
-                break;
-            }
-
-            for (int i = 0; i < ACTUATOR_COUNT; i++)
-            {
-                jnt_position_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
-                jnt_velocity_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
-                jnt_torque_vec  (i) = base_feedback.actuators(i).torque();
-                jnt_current_vec (i) = base_feedback.actuators(i).current_motor();
-            }
-
-            // Get the friction-free state
-            if (compensate_joint_friction) friction_observer.getNominalState(nominal_pos_vec, nominal_vel_vec);
-            else
-            {
-                nominal_pos_vec = jnt_position_vec;
-                nominal_vel_vec = jnt_velocity_vec;
-            }
-
-            // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
-
-            for (int i = 0; i < ACTUATOR_COUNT; i++)
-            {
-                if (arm_position_configuration == "Home" ) {
-                    if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(home_configuration[i]);
+                try
+                {
+                    base_feedback = base_cyclic->RefreshFeedback();
                 }
-                else if(arm_position_configuration == "Zero") {
-                    if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(zero_configuration[i]);
-                }    
-            }
-            base_command.mutable_actuators(TEST_JOINT)->set_position(base_feedback.actuators(TEST_JOINT).position());
-            
-            if(get_static_torque){
-                bool bval1,bval2;
-                double dval1,dval2,dval3,dval4;
-                tie (bval1,dval1,dval2,dval3,dval4,bval2) =data_collector_obj.get_static_torques_values(start_test,jnt_ctrl_torque_vec(TEST_JOINT),jnt_velocity_vec(TEST_JOINT)
-                ,error,previous_error,theta_dot_desired,nominal_vel_vec(TEST_JOINT),DT_SEC);
-                start_test=bval1;
-                jnt_ctrl_torque_vec(TEST_JOINT)=dval1;
-                jnt_velocity_vec(TEST_JOINT)=dval2;
-                error=dval3;
-                previous_error=dval4;
-                bool break_loop=bval2;
+                catch (Kinova::Api::KDetailedException& ex)
+                {
+                    std::cout << "Kortex exception 1: " << ex.what() << std::endl;
 
-                if(break_loop){
+                    std::cout << "KError error_code 1: " << ex.getErrorInfo().getError().error_code() << std::endl;
+                    std::cout << "KError sub_code 1: " << ex.getErrorInfo().getError().error_sub_code() << std::endl;
+                    std::cout << "KError sub_string 1: " << ex.getErrorInfo().getError().error_sub_string() << std::endl;
+
+                    // Error codes by themselves are not very verbose if you don't see their corresponding enum value
+                    // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
+                    std::cout << "Error code string equivalent 1: " << Kinova::Api::ErrorCodes_Name(Kinova::Api::ErrorCodes(ex.getErrorInfo().getError().error_code())) << std::endl;
+                    std::cout << "Error sub-code string equivalent 1: " << Kinova::Api::SubErrorCodes_Name(Kinova::Api::SubErrorCodes(ex.getErrorInfo().getError().error_sub_code())) << std::endl;
+                    break;
+                }
+                catch (std::runtime_error& ex2)
+                {
+                    std::cout << "runtime error 1: " << ex2.what() << std::endl;
+                    break;
+                }
+                catch(...)
+                {
+                    std::cout << "Unknown error 1." << std::endl;
                     break;
                 }
 
+                for (int i = 0; i < ACTUATOR_COUNT; i++)
+                {
+                    jnt_position_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).position());
+                    jnt_velocity_vec(i) = DEG_TO_RAD(base_feedback.actuators(i).velocity());
+                    jnt_torque_vec  (i) = base_feedback.actuators(i).torque();
+                    jnt_current_vec (i) = base_feedback.actuators(i).current_motor();
+                }
+
+                // Get the friction-free state
+                if (compensate_joint_friction) friction_observer.getNominalState(nominal_pos_vec, nominal_vel_vec);
+                else
+                {
+                    nominal_pos_vec = jnt_position_vec;
+                    nominal_vel_vec = jnt_velocity_vec;
+                }
+
+                // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
+
+                for (int i = 0; i < ACTUATOR_COUNT; i++)
+                {
+                    if (arm_position_configuration == "Home" ) {
+                        if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(home_configuration[i]);
+                    }
+                    else if(arm_position_configuration == "Zero") {
+                        if (i != TEST_JOINT) base_command.mutable_actuators(i)->set_position(zero_configuration[i]);
+                    }    
+                }
+                base_command.mutable_actuators(TEST_JOINT)->set_position(base_feedback.actuators(TEST_JOINT).position());
+                
+                if(get_static_torque){
+                    bool bval1,bval2;
+                    double dval1,dval2,dval3,dval4;
+                    tie (bval1,dval1,dval2,dval3,dval4,bval2) =data_collector_obj.get_static_torques_values(start_test,jnt_ctrl_torque_vec(TEST_JOINT),jnt_velocity_vec(TEST_JOINT)
+                    ,error,previous_error,theta_dot_desired,nominal_vel_vec(TEST_JOINT),DT_SEC,iterator);
+                    start_test=bval1;
+                    jnt_ctrl_torque_vec(TEST_JOINT)=dval1;
+                    jnt_velocity_vec(TEST_JOINT)=dval2;
+                    error=dval3;
+                    previous_error=dval4;
+                    bool break_loop=bval2;
+
+                    if(break_loop){
+
+                        break;
+                    }
+
+                }
+            
+
+                // if (start_test){
+                //     if (!equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0085)){
+                //         printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec(TEST_JOINT), jnt_velocity_vec(TEST_JOINT));
+                //         break;
+                //     }
+                //     else{
+                //         jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.01;
+                //     }
+                // }
+                // else {
+                //     // Error calc
+                //     error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
+
+                //     // PD control
+                //     jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
+                //     jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+                //     previous_error = error;
+                //     if (equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0002))
+                //     {
+                //         start_test = true;
+                //         jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
+                //         // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
+                //         std::cout << iteration_count << std::endl;
+                //         printf("now\n");
+                //     }
+                // }
+
+
+                // Estimate friction in joints
+                // if (compensate_joint_friction)
+                // {
+                //     friction_observer.estimateFrictionTorque(jnt_position_vec, jnt_velocity_vec, jnt_ctrl_torque_vec, jnt_torque_vec, friction_torque_vec);
+                //     jnt_ctrl_torque_vec(TEST_JOINT) -= friction_torque_vec(TEST_JOINT);
+                // }
+    
+                jnt_command_current_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) / motor_torque_constant[TEST_JOINT];
+                if      (jnt_command_current_vec(TEST_JOINT) >  joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) =  joint_current_limits[TEST_JOINT];
+                else if (jnt_command_current_vec(TEST_JOINT) < -joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) = -joint_current_limits[TEST_JOINT];
+                base_command.mutable_actuators(TEST_JOINT)->set_current_motor(jnt_command_current_vec(TEST_JOINT));
+
+                // Incrementing identifier ensures actuators can reject out of time frames
+                base_command.set_frame_id(base_command.frame_id() + 1);
+                if (base_command.frame_id() > 65535) base_command.set_frame_id(0);
+                for (int idx = 0; idx < ACTUATOR_COUNT; idx++)
+                    base_command.mutable_actuators(idx)->set_command_id(base_command.frame_id());
+
+                try
+                {
+                    base_feedback = base_cyclic->Refresh(base_command, 0);
+                }
+                catch (k_api::KDetailedException& ex)
+                {
+                    std::cout << "Kortex exception 2: " << ex.what() << std::endl;
+                    std::cout << "Kortex exception 2: " << ex.what() << std::endl;
+
+                    std::cout << "KError error_code 2: " << ex.getErrorInfo().getError().error_code() << std::endl;
+                    std::cout << "KError sub_code 2: " << ex.getErrorInfo().getError().error_sub_code() << std::endl;
+                    std::cout << "KError sub_string 2: " << ex.getErrorInfo().getError().error_sub_string() << std::endl;
+
+                    // Error codes by themselves are not very verbose if you don't see their corresponding enum value
+                    // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
+                    std::cout << "Error code string equivalent 2: " << Kinova::Api::ErrorCodes_Name(Kinova::Api::ErrorCodes(ex.getErrorInfo().getError().error_code())) << std::endl;
+                    std::cout << "Error sub-code string equivalent 2: " << Kinova::Api::SubErrorCodes_Name(Kinova::Api::SubErrorCodes(ex.getErrorInfo().getError().error_sub_code())) << std::endl;
+                    break;
+                }
+                catch (std::runtime_error& ex2)
+                {
+                    std::cout << "runtime error 2: " << ex2.what() << std::endl;
+                    break;
+                }
+                catch(...)
+                {
+                    std::cout << "Unknown error. 2" << std::endl;
+                    break;
+                }
+                if (get_dynamic_values){
+                    data_collector_obj.get_dynamic_data(jnt_ctrl_torque_vec[TEST_JOINT],jnt_position_vec[TEST_JOINT],jnt_velocity_vec[TEST_JOINT],
+                        jnt_torque_vec[TEST_JOINT],jnt_command_current_vec[TEST_JOINT],jnt_current_vec[TEST_JOINT],friction_torque_vec[TEST_JOINT],
+                        nominal_pos_vec[TEST_JOINT],nominal_vel_vec[TEST_JOINT]);
+                }
+
+                // Enforce the constant loop time and count how many times the loop was late
+                if (enforce_loop_frequency(DT_MICRO) != 0) control_loop_delay_count++;
             }
-           
-
-            // if (start_test){
-            //     if (!equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0085)){
-            //         printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec(TEST_JOINT), jnt_velocity_vec(TEST_JOINT));
-            //         break;
-            //     }
-            //     else{
-            //         jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.01;
-            //     }
-            // }
-            // else {
-            //     // Error calc
-            //     error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
-
-            //     // PD control
-            //     jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
-            //     jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
-            //     previous_error = error;
-            //     if (equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0002))
-            //     {
-            //         start_test = true;
-            //         jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
-            //         // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
-            //         std::cout << iteration_count << std::endl;
-            //         printf("now\n");
-            //     }
-            // }
-
-
-            // Estimate friction in joints
-            // if (compensate_joint_friction)
-            // {
-            //     friction_observer.estimateFrictionTorque(jnt_position_vec, jnt_velocity_vec, jnt_ctrl_torque_vec, jnt_torque_vec, friction_torque_vec);
-            //     jnt_ctrl_torque_vec(TEST_JOINT) -= friction_torque_vec(TEST_JOINT);
-            // }
- 
-            jnt_command_current_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) / motor_torque_constant[TEST_JOINT];
-            if      (jnt_command_current_vec(TEST_JOINT) >  joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) =  joint_current_limits[TEST_JOINT];
-            else if (jnt_command_current_vec(TEST_JOINT) < -joint_current_limits[TEST_JOINT]) jnt_command_current_vec(TEST_JOINT) = -joint_current_limits[TEST_JOINT];
-            base_command.mutable_actuators(TEST_JOINT)->set_current_motor(jnt_command_current_vec(TEST_JOINT));
-
-            // Incrementing identifier ensures actuators can reject out of time frames
-            base_command.set_frame_id(base_command.frame_id() + 1);
-            if (base_command.frame_id() > 65535) base_command.set_frame_id(0);
-            for (int idx = 0; idx < ACTUATOR_COUNT; idx++)
-                base_command.mutable_actuators(idx)->set_command_id(base_command.frame_id());
-
-            try
-            {
-                base_feedback = base_cyclic->Refresh(base_command, 0);
-            }
-            catch (k_api::KDetailedException& ex)
-            {
-                std::cout << "Kortex exception 2: " << ex.what() << std::endl;
-                std::cout << "Kortex exception 2: " << ex.what() << std::endl;
-
-                std::cout << "KError error_code 2: " << ex.getErrorInfo().getError().error_code() << std::endl;
-                std::cout << "KError sub_code 2: " << ex.getErrorInfo().getError().error_sub_code() << std::endl;
-                std::cout << "KError sub_string 2: " << ex.getErrorInfo().getError().error_sub_string() << std::endl;
-
-                // Error codes by themselves are not very verbose if you don't see their corresponding enum value
-                // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
-                std::cout << "Error code string equivalent 2: " << Kinova::Api::ErrorCodes_Name(Kinova::Api::ErrorCodes(ex.getErrorInfo().getError().error_code())) << std::endl;
-                std::cout << "Error sub-code string equivalent 2: " << Kinova::Api::SubErrorCodes_Name(Kinova::Api::SubErrorCodes(ex.getErrorInfo().getError().error_sub_code())) << std::endl;
-                break;
-            }
-            catch (std::runtime_error& ex2)
-            {
-                std::cout << "runtime error 2: " << ex2.what() << std::endl;
-                break;
-            }
-            catch(...)
-            {
-                std::cout << "Unknown error. 2" << std::endl;
-                break;
-            }
-
-            data_collector_obj.get_data(jnt_ctrl_torque_vec[TEST_JOINT],jnt_position_vec[TEST_JOINT],jnt_velocity_vec[TEST_JOINT],
-                jnt_torque_vec[TEST_JOINT],jnt_command_current_vec[TEST_JOINT],jnt_current_vec[TEST_JOINT],friction_torque_vec[TEST_JOINT],
-                nominal_pos_vec[TEST_JOINT],nominal_vel_vec[TEST_JOINT]);
-
-            // Enforce the constant loop time and count how many times the loop was late
-            if (enforce_loop_frequency(DT_MICRO) != 0) control_loop_delay_count++;
-        }
-        //function to save data to csv file
         
+            //function to save data to csv file    
+            if (get_static_torque) data_collector_obj.create_static_torque_value_file();
+
+            if (get_dynamic_values) data_collector_obj.save_dynamic_data();
+            
+            iterator++;
+        }
+
 
         // Set actuators back in position 
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-
-        if (get_static_torque) data_collector_obj.create_static_torque_value_file();
-
-        data_collector_obj.save_data();
+       
         
         for (int actuator_id = 1; actuator_id < ACTUATOR_COUNT + 1; actuator_id++)
             actuator_config->SetControlMode(control_mode_message, actuator_id);
@@ -372,12 +384,12 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     base->SetServoingMode(servoing_mode);
 
     // Wait for a bit
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
     // std::cout << "last current command: " << jnt_command_current(TEST_JOINT) << std::endl;
-    std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count() / SECOND
-              << "   Loop iteration count: "                             << iteration_count
-              << "   Control Loop delay count: "                         << control_loop_delay_count << std::endl;
+    // std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count() / SECOND
+    //           << "   Loop iteration count: "                             << iteration_count
+    //           << "   Control Loop delay count: "                         << control_loop_delay_count << std::endl;
 
     return return_status;
 }
