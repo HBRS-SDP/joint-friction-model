@@ -9,6 +9,5 @@ task_time_limit_sec: 10  # in seconds
 test_joint: 6
 actuator_count: 7
 
-get_static_torque: True
-get_dynamic_values: False
-static_torque_test: True
+get_static_torque: False
+get_dynamic_values: True

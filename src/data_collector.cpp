@@ -55,56 +55,51 @@ void Data_collector:: save_dynamic_data(){
 
 
 
-bool equal(double x, double y, double epsilon = 0.00001)
-    {
-        return (std::fabs(x - y) < epsilon);
-    }
+// bool equal(double x, double y, double epsilon = 0.00001)
+//     {
+//         return (std::fabs(x - y) < epsilon);
+//     }
 
-tuple<bool,double,double,double,double,bool> Data_collector :: get_static_torques_values(bool start_test,double jnt_ctrl_torque_vec,double jnt_velocity_vec, double error,double previous_error,double theta_dot_desired,double nominal_vel_vec,double DT_SEC,int iterator){
+tuple<bool,double,double,double,double,bool> Data_collector :: get_static_torques_values(bool start_test,double jnt_ctrl_torque_vec,double jnt_velocity_vec, double error,double previous_error,double theta_dot_desired,double nominal_vel_vec,double DT_SEC,const int iterator){
 
-    // struct retVals {      
-    //     bool b1;
-    //     double i1, i2,i3,i4;
-    //     bool b2;
-    // };
-    bool test_start=start_test;
-    double l_error = error;
-    double l_previous_error = previous_error;
+    // bool test_start=start_test;
+    // double l_error = error;
+    // double l_previous_error = previous_error;
 
-    if (test_start){
-        if (!equal(0.0,jnt_velocity_vec, 0.0085)){
-            this->save_static_torques_breakawy_point(jnt_ctrl_torque_vec);
-            printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec, jnt_velocity_vec);
-            return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,true};
+    // if (test_start){
+    //     if (!equal(0.0,jnt_velocity_vec, 0.0085)){
+    //         this->save_static_torques_breakawy_point(jnt_ctrl_torque_vec);
+    //         printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec, jnt_velocity_vec);
+    //         return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,true};
 
-        }
-        else{
-             jnt_ctrl_torque_vec = jnt_ctrl_torque_vec + (0.05*((int)(iterator/10)+1)); //to increase the increment value of torque_value every 10 iterations by 0.05 
-            // this->save_static_torques_values(jnt_ctrl_torque_vec);
-            return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
+    //     }
+    //     else{
+    //          jnt_ctrl_torque_vec = jnt_ctrl_torque_vec + (0.05*((int)(iterator/10)+1)); //to increase the increment value of torque_value every 10 iterations by 0.05 
+    //         // this->save_static_torques_values(jnt_ctrl_torque_vec);
+    //         return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
 
-        }
-    }
-    else {
-        // Error calc
-        l_error = theta_dot_desired - nominal_vel_vec;
+    //     }
+    // }
+    // else {
+    //     // Error calc
+    //     l_error = theta_dot_desired - nominal_vel_vec;
 
-        // PD control
-        jnt_ctrl_torque_vec  = 11.5 * l_error; // P controller
-        jnt_ctrl_torque_vec += 0.0009 * (l_error - l_previous_error) / DT_SEC; // D term
-        l_previous_error = l_error;
-        if (equal(0.0,jnt_velocity_vec, 0.0002))
-        {
-            test_start = true;
-            jnt_ctrl_torque_vec = 0.0;
-            // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
-            // std::cout << iteration_count << std::endl;
-            // printf("now\n");
-            return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
+    //     // PD control
+    //     jnt_ctrl_torque_vec  = 11.5 * l_error; // P controller
+    //     jnt_ctrl_torque_vec += 0.0009 * (l_error - l_previous_error) / DT_SEC; // D term
+    //     l_previous_error = l_error;
+    //     if (equal(0.0,jnt_velocity_vec, 0.0002))
+    //     {
+    //         test_start = true;
+    //         jnt_ctrl_torque_vec = 0.0;
+    //         // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
+    //         // std::cout << iteration_count << std::endl;
+    //         // printf("now\n");
+    //         return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
 
-        }
-        return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
-    }
+    //     }
+    //     return {test_start,jnt_ctrl_torque_vec,jnt_velocity_vec,l_error,l_previous_error,false};
+    // }
 
 }
 

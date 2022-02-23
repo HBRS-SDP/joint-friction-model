@@ -2,6 +2,7 @@
 #include <data_collector.hpp>
 #include<yaml/Yaml.hpp>
 #include <cmath>
+#include <list>
 
 using namespace Yaml;
 
@@ -33,6 +34,11 @@ int friction_controller::enforce_loop_frequency(const int dt)
     else return -1; //Loop is too slow
 }
 
+bool equal(double x, double y, double epsilon = 0.00001)
+    {
+        return (std::fabs(x - y) < epsilon);
+    }
+
 
 bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
@@ -48,10 +54,10 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     const double task_time_limit_sec = root["task_time_limit_sec"].As<double>();
     bool get_static_torque= root["get_static_torque"].As<bool>();
     bool get_dynamic_values= root["get_dynamic_values"].As<bool>();
-    bool start_test = root["static_torque_test"].As<bool>(); 
+    bool start_test ;           //flag variable to start testing for static torque breakaway point 
     string arm_position_configuration= root["arm_position_configuration"].As<string>();
-
-    int iteration_count = 0;
+    double different_velocity_values [] = {0.1,0.3,0.5,0.9,1.3};
+    
     int control_loop_delay_count = 0;
     bool return_status = true;
     bool compensate_joint_friction = false;
@@ -164,27 +170,39 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
 
         // Velocity control
         double theta_dot_desired = 0.0;
-        if      (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
-        else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
+        // if      (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
+        // else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
 
         // ##########################################################################
         // Real-time loop
         // ##########################################################################
-
-        if(get_static_torque){
+        int iteration_limit=0;
+        
+        if(get_static_torque)
+        {
             jnt_ctrl_torque_vec(TEST_JOINT) = 0.1;
             start_test = false;
+            iteration_limit=50;
+        }
+        if (get_dynamic_values)
+        {
+            iteration_limit=5;
         }
 
         double starting_position_value = jnt_position_vec(TEST_JOINT);
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
-        
-        int iterator=1;
-        while(iterator<=50){
 
+        int iteration_counter=0;
+        while (iteration_counter<iteration_limit)
+        {
+            if (get_dynamic_values) 
+            {   //velocity control
+                theta_dot_desired = different_velocity_values[iteration_counter];
+                if (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
+                else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
+            }
             while (total_time_sec.count() / SECOND < task_time_limit_sec)
             {
-                iteration_count++;
                 loop_start_time = std::chrono::steady_clock::now();
                 total_time_sec = std::chrono::duration<double, std::micro>(loop_start_time - control_start_time_sec);
 
@@ -246,52 +264,58 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
                 }
                 base_command.mutable_actuators(TEST_JOINT)->set_position(base_feedback.actuators(TEST_JOINT).position());
                 
-                if(get_static_torque){
-                    bool bval1,bval2;
-                    double dval1,dval2,dval3,dval4;
-                    tie (bval1,dval1,dval2,dval3,dval4,bval2) =data_collector_obj.get_static_torques_values(start_test,jnt_ctrl_torque_vec(TEST_JOINT),jnt_velocity_vec(TEST_JOINT)
-                    ,error,previous_error,theta_dot_desired,nominal_vel_vec(TEST_JOINT),DT_SEC,iterator);
-                    start_test=bval1;
-                    jnt_ctrl_torque_vec(TEST_JOINT)=dval1;
-                    jnt_velocity_vec(TEST_JOINT)=dval2;
-                    error=dval3;
-                    previous_error=dval4;
-                    bool break_loop=bval2;
+                // if(get_static_torque){
+                //     bool bval1,bval2;
+                //     double dval1,dval2,dval3,dval4;
+                //     tie (bval1,dval1,dval2,dval3,dval4,bval2) =data_collector_obj.get_static_torques_values(start_test,jnt_ctrl_torque_vec(TEST_JOINT),jnt_velocity_vec(TEST_JOINT)
+                //     ,error,previous_error,theta_dot_desired,nominal_vel_vec(TEST_JOINT),DT_SEC,iteration_counter);
+                //     start_test=bval1;
+                //     jnt_ctrl_torque_vec(TEST_JOINT)=dval1;
+                //     jnt_velocity_vec(TEST_JOINT)=dval2;
+                //     error=dval3;
+                //     previous_error=dval4;
+                //     bool break_loop=bval2;
 
-                    if(break_loop){
+                //     if(break_loop){
 
-                        break;
-                    }
-
-                }
-            
-
-                // if (start_test){
-                //     if (!equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0085)){
-                //         printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec(TEST_JOINT), jnt_velocity_vec(TEST_JOINT));
                 //         break;
                 //     }
-                //     else{
-                //         jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.01;
-                //     }
-                // }
-                // else {
-                //     // Error calc
-                //     error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
 
-                //     // PD control
-                //     jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
-                //     jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
-                //     previous_error = error;
-                //     if (equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0002))
-                //     {
-                //         start_test = true;
-                //         jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
-                //         // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
-                //         std::cout << iteration_count << std::endl;
-                //         printf("now\n");
-                //     }
                 // }
+            
+                if (get_static_torque)
+                {
+                    if (start_test)
+                    {
+                        if (!equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0085)){
+                            // printf("breakaway torque: %f  velocity: %f", jnt_ctrl_torque_vec(TEST_JOINT), jnt_velocity_vec(TEST_JOINT));
+                            data_collector_obj.save_static_torques_breakawy_point(jnt_ctrl_torque_vec(TEST_JOINT));
+                            
+                            break;
+                        }
+                        else{
+                            data_collector_obj.save_static_torques_values(jnt_ctrl_torque_vec(TEST_JOINT));
+                            jnt_ctrl_torque_vec(TEST_JOINT) = jnt_ctrl_torque_vec(TEST_JOINT) + 0.01;
+                        }
+                    }
+                    else 
+                    {
+                        // Error calc
+                        error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
+
+                        // PD control
+                        jnt_ctrl_torque_vec(TEST_JOINT)  = 11.5 * error; // P controller
+                        jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+                        previous_error = error;
+                        if (equal(0.0,jnt_velocity_vec(TEST_JOINT), 0.0002))
+                        {
+                            start_test = true;
+                            jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
+                            // std::cout << jnt_velocity_vec(TEST_JOINT) << std::endl;
+                            // printf("now\n");
+                        }
+                    }
+                }
 
 
                 // Estimate friction in joints
@@ -355,8 +379,11 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             if (get_static_torque) data_collector_obj.create_static_torque_value_file();
 
             if (get_dynamic_values) data_collector_obj.save_dynamic_data();
-            
-            iterator++;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+            start_test = false;
+            iteration_counter++;
         }
 
 
@@ -388,7 +415,6 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
 
     // std::cout << "last current command: " << jnt_command_current(TEST_JOINT) << std::endl;
     // std::cout << "Torque control example clean exit. \nTotal run time: " << total_time_sec.count() / SECOND
-    //           << "   Loop iteration count: "                             << iteration_count
     //           << "   Control Loop delay count: "                         << control_loop_delay_count << std::endl;
 
     return return_status;
