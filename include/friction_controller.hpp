@@ -14,7 +14,7 @@ class friction_controller
 	private:
 
 	public:
-		bool example_cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config);
+		bool cyclic_torque_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config);
 		int enforce_loop_frequency(const int dt);
 };
 #endif

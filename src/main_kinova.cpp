@@ -3,6 +3,7 @@
 #include <vector>
 #include <math.h>
 #include <stdlib.h> /* abs */
+#include <thread>
 #include <chrono>
 #include <time.h>
 #include <unistd.h>
@@ -15,8 +16,12 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
 #include<yaml/Yaml.hpp>
+
 using namespace std;
 namespace k_api = Kinova::Api;
+using namespace std::this_thread;     // sleep_for, sleep_until
+using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
+using std::chrono::system_clock;
 
 #define IP_ADDRESS "192.168.1.10"
 #define PORT 10000
@@ -53,6 +58,10 @@ std::function<void(k_api::Base::ActionNotification)>
 void example_move_to_home_position(k_api::Base::BaseClient* base)
 {
     // Make sure the arm is in Single Level Servoing before executing an Action
+    Yaml::Node root;
+    Yaml::Parse(root, "../configs/constants.yml");
+    string arm_position_configuration = root["arm_position_configuration"].As<string>();
+
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
@@ -68,7 +77,7 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
 
     for (auto action : action_list.action_list()) 
     {
-        if (action.name() == "Home")
+        if (action.name() == arm_position_configuration)
         {
             action_handle = action.handle();
         }
@@ -146,12 +155,17 @@ int main(int argc, char **argv)
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
     auto actuator_config = new k_api::ActuatorConfig::ActuatorConfigClient(router);
     // Example core
-    // example_move_to_home_position(base);
-    auto isOk = controller.example_cyclic_torque_control(base, base_cyclic, actuator_config);
+
+    if(!offline_mode){
+        example_move_to_home_position(base);
+    }
+    
+    auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
     if (!isOk)
     {
-        cout << "There has been an unexpected error in example_cyclic_torque_control() function." << endl;;
+        cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;;
     }
+    
     // Close API session
     session_manager->CloseSession();
     session_manager_real_time->CloseSession();
