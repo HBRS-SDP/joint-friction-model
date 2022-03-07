@@ -57,6 +57,11 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
     bool start_test ;           //flag variable to start testing for static torque breakaway point 
     string arm_position_configuration= root["arm_position_configuration"].As<string>();
     double different_velocity_values [] = {0.1,0.3,0.5,0.9,1.3};
+
+    std::vector<double> listg= root["listg"].As< std::vector<double> >();
+    // cout<< listg[0];
+    // cout<< listg[1];
+    // cout<< listg[2];
     
     int control_loop_delay_count = 0;
     bool return_status = true;
@@ -189,7 +194,7 @@ bool friction_controller::example_cyclic_torque_control(k_api::Base::BaseClient*
             iteration_limit=5;
         }
 
-        double starting_position_value = jnt_position_vec(TEST_JOINT);
+        // double starting_position_value = jnt_position_vec(TEST_JOINT);
         const std::chrono::steady_clock::time_point control_start_time_sec = std::chrono::steady_clock::now();
 
         int iteration_counter=0;
