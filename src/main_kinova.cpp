@@ -55,7 +55,7 @@ std::function<void(k_api::Base::ActionNotification)>
 /**************************
  * Example core functions *
  **************************/
-void example_move_to_home_position(k_api::Base::BaseClient* base)
+void move_to_configured_position(k_api::Base::BaseClient* base)
 {
     // Make sure the arm is in Single Level Servoing before executing an Action
     Yaml::Node root;
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     // Example core
 
     if(!offline_mode){
-        example_move_to_home_position(base);
+        move_to_configured_position(base);
     }
     
     auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    

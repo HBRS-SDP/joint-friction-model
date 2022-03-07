@@ -35,6 +35,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
     Data_collector data_collector_obj;
     Yaml::Node root;
     Yaml::Parse(root, "../configs/constants.yml");
+
     const int ACTUATOR_COUNT=root["actuator_count"].As<int>();
     const int TEST_JOINT=root["test_joint"].As<int>();
     const int RATE_HZ = root["RATE_HZ"].As<int>(); // Hz
@@ -45,29 +46,53 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
     bool get_dynamic_values= root["get_dynamic_values"].As<bool>();
     bool start_test ; //flag variable to start testing for static torque breakaway point 
     string arm_position_configuration= root["arm_position_configuration"].As<string>();
-    double different_velocity_values [] = {0.1,0.3,0.5,0.9,1.3};
+    std::vector<double> different_velocity_values;
     int control_loop_delay_count = 0;
     bool return_status = true;
     bool compensate_joint_friction = false;
 
     // Low level velocity limits (official Kinova): 2.618 rad/s (149 deg/s) for small and 1.745 rad/s (99 deg/s) for large joints
-    const std::vector<double> joint_velocity_limits {1.74, 1.74, 1.74, 1.74, 2.6, 2.6, 2.6};
+    std::vector<double> joint_velocity_limits;
     // Motor torque constant K_t (gear ration included - 100:1): official Kinova values
-    const std::vector<double> motor_torque_constant {11.0, 11.0, 11.0, 11.0, 7.6, 7.6, 7.6}; // These ones show best result in gravity comp. cases
+    std::vector<double> motor_torque_constant; // These ones show best result in gravity comp. cases
+
     // Low-level mode current limits: derived based on safety thresholds outlined in the KINOVA manual
-    const std::vector<double> joint_current_limits {9.5, 9.5, 9.5, 9.5, 5.5, 5.5, 5.5}; // Amp
-    const std::vector<double> home_configuration {0.0, 15.0, 180.0, 230.0, 0.0, 55.0, 90.0};
-    const std::vector<double> zero_configuration {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    const std::vector<double> joint_inertia {0.5580, 0.5580, 0.5580, 0.5580, 0.1389, 0.1389, 0.1389};
+    std::vector<double> joint_current_limits; // Amp
+    std::vector<double> home_configuration;
+    std::vector<double> zero_configuration;
+    std::vector<double> joint_inertia;
+    std::vector<double> friction_estimation_D_gain;
+    std::vector<double> friction_estimation_P_gain;
+    std::vector<double> friction_estimation_I_gain;
+
+    int vector_interartor;
+    for(vector_interartor=0;vector_interartor<7;vector_interartor++)
+    {
+        joint_velocity_limits.push_back(root["joint_velocity_limits"][vector_interartor].As< double >());
+        motor_torque_constant.push_back(root["motor_torque_constant"][vector_interartor].As< double >());
+        joint_current_limits.push_back(root["joint_current_limits"][vector_interartor].As< double >());
+        home_configuration.push_back(root["home_configuration"][vector_interartor].As< double >());
+        zero_configuration.push_back(root["zero_configuration"][vector_interartor].As< double >());
+        joint_inertia.push_back(root["joint_inertia"][vector_interartor].As< double >());
+        friction_estimation_D_gain.push_back(root["friction_estimation_D_gain"][vector_interartor].As< double >());
+        friction_estimation_P_gain.push_back(root["friction_estimation_P_gain"][vector_interartor].As< double >());
+        friction_estimation_I_gain.push_back(root["friction_estimation_I_gain"][vector_interartor].As< double >());
+    }
+
+    for(vector_interartor=0;vector_interartor<5;vector_interartor++)
+    {
+        different_velocity_values.push_back(root["different_velocity_values"][vector_interartor].As< double >());
+    }
 
     Eigen::VectorXd rotor_inertia_eigen(ACTUATOR_COUNT);
+
     for (unsigned int i = 0; i < ACTUATOR_COUNT; i++) 
         rotor_inertia_eigen(i) = joint_inertia[i];
         
     // Setup the gains
-    Eigen::VectorXd friction_estimation_d_gain = (Eigen::VectorXd(7) << 30.0, 30.0, 30.0, 30.0, 20.0, 20.0, 20.0).finished();
-    Eigen::VectorXd friction_estimation_p_gain = (Eigen::VectorXd(7) << 70.0, 70.0, 70.0, 70.0, 50.0, 50.0, 50.0).finished();
-    Eigen::VectorXd friction_estimation_i_gain = (Eigen::VectorXd(7) << 30.0, 30.0, 30.0, 30.0, 20.0, 20.0, 20.0).finished();
+    Eigen::VectorXd friction_estimation_d_gain = Eigen::VectorXd::Map(friction_estimation_D_gain.data(), friction_estimation_D_gain.size());
+    Eigen::VectorXd friction_estimation_p_gain = Eigen::VectorXd::Map(friction_estimation_P_gain.data(), friction_estimation_P_gain.size());
+    Eigen::VectorXd friction_estimation_i_gain = Eigen::VectorXd::Map(friction_estimation_I_gain.data(), friction_estimation_I_gain.size());
 
     FrictionObserver friction_observer(ACTUATOR_COUNT, DT_SEC, rotor_inertia_eigen, friction_estimation_d_gain, friction_estimation_p_gain,
                                        friction_estimation_i_gain, friction_observer_type::PD, integration_method::SYMPLECTIC_EULER, 0, 0.0);
@@ -80,11 +105,13 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
     
     // checking arm position configuration name
     try {
-        if ( arm_position_configuration != "Home" || arm_position_configuration != "Zero"){
+        if ( arm_position_configuration != "Home" && arm_position_configuration != "Zero")
+        {   
             throw std::invalid_argument( "unknown position configuration name " );
         }
     }
-    catch(const std::invalid_argument& e){
+    catch(const std::invalid_argument){
+        cout<<"unknown position configuration name "<<endl;
         return false;
     }
     // Clearing faults
@@ -153,7 +180,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
         
         if(get_static_torque)
         {
-            jnt_ctrl_torque_vec(TEST_JOINT) = 0.1;
+            jnt_ctrl_torque_vec(TEST_JOINT) = root["jnt_ctrl_torque_vec_start"].As<double>();
             start_test = false;
             iteration_limit=50;
         }
