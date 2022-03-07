@@ -17,7 +17,6 @@
 #include <google/protobuf/util/json_util.h>
 #include<yaml/Yaml.hpp>
 
-using namespace std;
 namespace k_api = Kinova::Api;
 using namespace std::this_thread;     // sleep_for, sleep_until
 using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
@@ -68,7 +67,7 @@ void move_to_configured_position(k_api::Base::BaseClient* base)
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // Move arm to ready position
-    cout << "Moving the arm to a safe position" << endl;
+    std::cout << "Moving the arm to a safe position" << endl;
     auto action_type = k_api::Base::RequestedActionType();
     action_type.set_action_type(k_api::Base::REACH_JOINT_ANGLES);
     auto action_list = base->ReadAllActions(action_type);
@@ -85,7 +84,7 @@ void move_to_configured_position(k_api::Base::BaseClient* base)
 
     if (action_handle.identifier() == 0)
     {
-        cout << "Can't reach safe position, exiting" << endl;
+        std::cout << "Can't reach safe position, exiting" << endl;
         return;
     }
     else
@@ -107,7 +106,7 @@ void move_to_configured_position(k_api::Base::BaseClient* base)
 
         if(status != std::future_status::ready)
         {
-            cout << "Timeout on action notification wait" << endl;
+            std::cout << "Timeout on action notification wait" << endl;
         }
         const auto promise_event = finish_future.get();
     }
@@ -121,13 +120,13 @@ int main(int argc, char **argv)
     Yaml::Node root;
     Yaml::Parse(root, "../configs/constants.yml");
     bool offline_mode = root["offline_mode"].As<bool>();
-    cout << "Creating transport objects" << endl;
+    std::cout << "Creating transport objects" << endl;
     auto transport = new k_api::TransportClientTcp();
     auto router = new k_api::RouterClient(transport, error_callback);
     if(!offline_mode){
         transport->connect(IP_ADDRESS, PORT);
     }
-    cout << "Creating transport real time objects" << endl;
+    std::cout << "Creating transport real time objects" << endl;
     auto transport_real_time = new k_api::TransportClientUdp();
     auto router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
     if(!offline_mode){
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
     create_session_info.set_session_inactivity_timeout(60000);   // (milliseconds)
     create_session_info.set_connection_inactivity_timeout(2000); // (milliseconds)
     // Session manager service wrapper
-    cout << "Creating sessions for communication" << endl;
+    std::cout << "Creating sessions for communication" << endl;
     auto session_manager = new k_api::SessionManager(router);
     if(!offline_mode){
         session_manager->CreateSession(create_session_info);
@@ -149,7 +148,7 @@ int main(int argc, char **argv)
     if(!offline_mode){
         session_manager_real_time->CreateSession(create_session_info);
     }
-    cout << "Sessions created" << endl;
+    std::cout << "Sessions created" << endl;
     // Create services
     auto base = new k_api::Base::BaseClient(router);
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
@@ -163,7 +162,7 @@ int main(int argc, char **argv)
     auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
     if (!isOk)
     {
-        cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;;
+        std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
     
     // Close API session
