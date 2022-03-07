@@ -6,8 +6,9 @@ task_time_limit_sec: 10  # in seconds
 test_joint: 6
 actuator_count: 7
 jnt_ctrl_torque_vec_start: 0.1
-torque_increment_rate = 0.05
-breakaway_torque_iterations = 50
+initial torque_increment_rate: 0.05
+breakaway_torque_samples: 10
+number_of_rate_increments: 5
 
 offline_mode: True  
 get_static_torque: False

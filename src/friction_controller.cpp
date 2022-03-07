@@ -41,8 +41,9 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
     const int RATE_HZ = root["RATE_HZ"].As<int>(); // Hz
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
-    const double torque_increment_rate = root["torque_increment_rate"].As<double>();
-    const double breakaway_torque_iterations = root["breakaway_torque_iterations"].As<double>();
+    const double torque_increment_rate = root["initial_torque_increment_rate"].As<double>();
+    const double breakaway_torque_samples = root["breakaway_torque_samples"].As<double>();
+    const double number_of_rate_increments = root["number_of_rate_increments"].As<double>();
     const double task_time_limit_sec = root["task_time_limit_sec"].As<double>();
     bool get_static_torque= root["get_static_torque"].As<bool>();
     bool get_dynamic_values= root["get_dynamic_values"].As<bool>();
@@ -184,7 +185,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
         {
             jnt_ctrl_torque_vec(TEST_JOINT) = root["jnt_ctrl_torque_vec_start"].As<double>();
             start_test = false;
-            iteration_limit=breakaway_torque_iterations;
+            iteration_limit = breakaway_torque_samples*number_of_rate_increments;
         }
         if (get_dynamic_values)
         {
@@ -196,7 +197,8 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
         for(iteration_counter =0; iteration_counter<iteration_limit; iteration_counter++)
         {
             if (get_dynamic_values) 
-            {   //velocity control
+            {   
+                //velocity control
                 theta_dot_desired = different_velocity_values[iteration_counter];
                 if (theta_dot_desired >  joint_velocity_limits[TEST_JOINT]) theta_dot_desired =  joint_velocity_limits[TEST_JOINT];
                 else if (theta_dot_desired < -joint_velocity_limits[TEST_JOINT]) theta_dot_desired = -joint_velocity_limits[TEST_JOINT];
