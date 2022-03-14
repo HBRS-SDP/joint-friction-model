@@ -50,6 +50,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
     bool start_test; //flag variable to start testing for static torque breakaway point 
     bool cool_down = false;
     string arm_position_configuration= root["arm_position_configuration"].As<string>();
+    const unsigned int joint_choice= root["joint_choice"].As<unsigned int>();
     std::vector<double> different_velocity_values;
     int control_loop_delay_count = 0;
     bool return_status = true;
@@ -145,27 +146,51 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient* base, k
         base_feedback = base_cyclic->Refresh(base_command);
         // Set actuators in torque mode
         auto control_mode_message = k_api::ActuatorConfig::ControlModeInformation();
+        switch (joint_choice) {
+        case 3: control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 1);
  
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 1);
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 2);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::CURRENT);
+                    actuator_config->SetControlMode(control_mode_message, 3);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 4);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 5);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 6);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 7);
+                    break;
+
+        case 7: control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 1);
  
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 2);
- 
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 3);
- 
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 4);
- 
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 5);
- 
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-        actuator_config->SetControlMode(control_mode_message, 6);
- 
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::CURRENT);
-        actuator_config->SetControlMode(control_mode_message, 7);
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 2);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 3);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 4);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 5);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+                    actuator_config->SetControlMode(control_mode_message, 6);
+
+                    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::CURRENT);
+                    actuator_config->SetControlMode(control_mode_message, 7);
+                    break;      
+    }
  
         double error = 0.0, previous_error = 0.0;
         // Initialize friction estimator (feedforward component)
