@@ -1,16 +1,17 @@
-arm_position_configuration: Home
-
+arm_position_configuration: friction_configuration_joint_7
+joint_choice: 7
 RATE_HZ: 900
 PARAMETERS_COUNT: 7
 task_time_limit_sec: 10  # in seconds 
 test_joint: 6
 actuator_count: 7
 jnt_ctrl_torque_vec_start: 0.1
-initial torque_increment_rate: 0.05
+initial_torque_increment_rate: 0.05
 breakaway_torque_samples: 10
 number_of_rate_increments: 5
+breakaway_torque_iterations: 50
 
-offline_mode: True  
+offline_mode: False  
 get_static_torque: False
 get_dynamic_values: True
 
@@ -65,6 +66,15 @@ zero_configuration:
   - 0.0
   - 0.0
   - 0.0
+
+friction_configuration_joint_7:
+  - 0.0
+  - 15.0
+  - 180.0
+  - 230.0
+  - 6.7
+  - 46.16
+  - 92.0
 
 joint_inertia:
   - 0.5580

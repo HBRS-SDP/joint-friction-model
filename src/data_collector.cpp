@@ -49,6 +49,13 @@ void Data_collector :: save_static_torques_breakawy_point(double static_torque_b
     this->static_friction_torque_breakaway_point.push_back(static_torque_breakaway_point);
 
 }
+
+void Data_collector :: save_static_torques_rate(double static_torque_rate){
+
+    this->static_friction_torque_rate.push_back(static_torque_rate);
+
+}
+
 // creating a file to save static torque values
 void Data_collector :: create_static_torque_value_file(){
 
@@ -69,7 +76,8 @@ void Data_collector :: create_static_torque_value_file(){
     for (int i = 0; i < rows2; i++)
     {
         // cout<<this->static_friction_torque_values[i]<<endl;
-        myfile << this->static_friction_torque_breakaway_point[i]<< " ";
+        // myfile << this->static_friction_torque_breakaway_point[i]<< " ";
+        myfile << this->static_friction_torque_breakaway_point[i]<< " " << this->static_friction_torque_rate[i]<< endl;
     }     
     myfile.close();
 

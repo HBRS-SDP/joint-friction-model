@@ -163,7 +163,7 @@ int main(int argc, char **argv)
     {
         std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
-    //invoking python script
+    // invoking python script
     std::string filename = "friction.py";
     std::string com = "python ";
     com = com + filename;
