@@ -11,7 +11,7 @@ breakaway_torque_samples: 10
 number_of_rate_increments: 5
 breakaway_torque_iterations: 50
 
-offline_mode: False  
+offline_mode: True  
 get_static_torque: False
 get_dynamic_values: True
 

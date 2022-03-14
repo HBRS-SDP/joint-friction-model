@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     }
     // invoking python script
     std::string filename = "friction.py";
-    std::string com = "python ";
+    std::string com = "python3 ";
     com = com + filename;
     system(com.c_str());
     // Close API session
@@ -186,6 +186,4 @@ int main(int argc, char **argv)
     delete router_real_time;
     delete transport;
     delete transport_real_time;
-
-
 }
