@@ -158,13 +158,16 @@ int main(int argc, char **argv)
     if(!offline_mode){
         move_to_configured_position(base);
     }
-    
     auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
     if (!isOk)
     {
         std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
-    
+    //invoking python script
+    std::string filename = "friction.py";
+    std::string com = "python ";
+    com = com + filename;
+    system(com.c_str());
     // Close API session
     session_manager->CloseSession();
     session_manager_real_time->CloseSession();
@@ -183,4 +186,6 @@ int main(int argc, char **argv)
     delete router_real_time;
     delete transport;
     delete transport_real_time;
+
+
 }
