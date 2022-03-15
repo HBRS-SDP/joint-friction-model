@@ -54,7 +54,7 @@ std::function<void(k_api::Base::ActionNotification)>
 /**************************
  * Example core functions *
  **************************/
-void move_to_configured_position(k_api::Base::BaseClient* base)
+int move_to_configured_position(k_api::Base::BaseClient* base)
 {
     // Make sure the arm is in Single Level Servoing before executing an Action
     Yaml::Node root;
@@ -85,7 +85,7 @@ void move_to_configured_position(k_api::Base::BaseClient* base)
     if (action_handle.identifier() == 0)
     {
         std::cout << "Can't reach safe position, exiting" << endl;
-        return;
+        return -1;
     }
     else
     {
@@ -107,12 +107,16 @@ void move_to_configured_position(k_api::Base::BaseClient* base)
         if(status != std::future_status::ready)
         {
             std::cout << "Timeout on action notification wait" << endl;
+            return -1;
         }
         const auto promise_event = finish_future.get();
     }
+
     base->Stop();
     // std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    return 0;
 }
+
 int main(int argc, char **argv)
 {
     // Create API objects
@@ -129,7 +133,7 @@ int main(int argc, char **argv)
     std::cout << "Creating transport real time objects" << endl;
     auto transport_real_time = new k_api::TransportClientUdp();
     auto router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
-    if(!offline_mode){
+    if (!offline_mode){
         transport_real_time->connect(IP_ADDRESS, PORT_REAL_TIME);
     }
     // Set session data connection information
@@ -155,13 +159,15 @@ int main(int argc, char **argv)
     auto actuator_config = new k_api::ActuatorConfig::ActuatorConfigClient(router);
     // Example core
 
-    if(!offline_mode){
-        move_to_configured_position(base);
+    bool safe_to_torque_control = false;
+    if (!offline_mode){
+        if (move_to_configured_position(base) == 0) safe_to_torque_control = true;
     }
-    auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
-    if (!isOk)
+    
+    if (safe_to_torque_control)
     {
-        std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
+        auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
+        if (!isOk) std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
     // invoking python script
     std::string filename = "friction.py";

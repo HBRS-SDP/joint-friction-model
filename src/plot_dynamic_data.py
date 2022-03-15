@@ -7,7 +7,7 @@ import glob
 def plot_joint_values():
     path = 'data' # use your folder name
     file_name = glob.glob("../"+path + "/*.csv")
-    velocity = np.array([0.1,0.3,0.5,0.9,1.3])
+    velocity = np.array([0.01,0.02,0.03,0.04,0.05,0.06,0.09,0.1,0.3,0.5,0.7,0.9])
     #function for filtering friction torque
     def vector_filtering(x, y):
         A = np.hstack((x[np.newaxis].T, np.ones((len(x), 1))))
@@ -40,8 +40,6 @@ def plot_joint_values():
             time.append(counter)
         for i in content[:,6]:
             friction_torque.append(i)
-        for i in content[:,8]:
-            nominal_vel.append(i)
         for k in range(len(time)):
             time[k]=time[k]/900
 
@@ -50,8 +48,7 @@ def plot_joint_values():
         fig.set_figheight(20)
         fig.suptitle('Joint vectors')
 
-        ax1.plot(time, jnt_velocity, color='r', label='Joint Velocity')
-        ax1.plot(time, nominal_vel, color='b', label='Nominal Velocity')
+        ax1.plot(time, jnt_velocity, color='b', label='Joint Velocity')
         ax1.legend()
         ax1.grid()
         ax1.set_xlabel("Time (sec)")
