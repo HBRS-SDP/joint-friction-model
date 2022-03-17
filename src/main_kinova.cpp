@@ -127,6 +127,7 @@ int main(int argc, char **argv)
     std::cout << "Creating transport objects" << endl;
     auto transport = new k_api::TransportClientTcp();
     auto router = new k_api::RouterClient(transport, error_callback);
+
     if(!offline_mode){
         transport->connect(IP_ADDRESS, PORT);
     }
@@ -143,16 +144,17 @@ int main(int argc, char **argv)
     create_session_info.set_session_inactivity_timeout(60000);   // (milliseconds)
     create_session_info.set_connection_inactivity_timeout(2000); // (milliseconds)
     // Session manager service wrapper
-    std::cout << "Creating sessions for communication" << endl;
     auto session_manager = new k_api::SessionManager(router);
     if(!offline_mode){
+        std::cout << "Creating sessions for communication" << endl;
         session_manager->CreateSession(create_session_info);
     }
     auto session_manager_real_time = new k_api::SessionManager(router_real_time);
     if(!offline_mode){
         session_manager_real_time->CreateSession(create_session_info);
+        std::cout << "Sessions created" << endl;
+
     }
-    std::cout << "Sessions created" << endl;
     // Create services
     auto base = new k_api::Base::BaseClient(router);
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
     }
     
     if (safe_to_torque_control)
-    {
+    {   
         auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
         if (!isOk) std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
