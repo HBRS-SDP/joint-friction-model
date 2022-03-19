@@ -4,6 +4,8 @@ from numpy import genfromtxt
 import matplotlib.pyplot as plt
 import glob
 import yaml
+import math
+
 # parsing through the config file to read constants
 with open("../configs/constants.yml", 'r') as config_file:
     constants = yaml.full_load(config_file)
@@ -42,7 +44,7 @@ def plot_joint_values():
             counter=counter+1
             time.append(counter)
         for iteration in content[:,6]:
-            if(iteration == 'inf'):
+            if math.isinf(iteration):
                 friction_torque.append(0)
             else:
                 friction_torque.append(iteration)
