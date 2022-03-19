@@ -9,7 +9,7 @@ using namespace std;
 
 class Data_collector {     // The class
   public:           // Access specifier
-    std::vector<float> vec = std::vector<float>();
+    std::vector<float> sensor_values = std::vector<float>();
     std::vector<double> static_friction_torque_values = std::vector<double>();
     std::vector<double> static_friction_torque_breakaway_point = std::vector<double>();
     std::vector<double> static_friction_torque_rate = std::vector<double>();

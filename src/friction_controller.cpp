@@ -30,6 +30,7 @@ int friction_controller::enforce_loop_frequency(const int dt)
     else
         return -1; // Loop is too slow
 }
+// function to check if two vaules are equal to each other
 bool equal(double x, double y, double epsilon = 0.00001)
 {
     return (std::fabs(x - y) < epsilon);
@@ -44,6 +45,8 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
     const unsigned int ACTUATOR_COUNT = root["actuator_count"].As<unsigned int>();
     const unsigned int TEST_JOINT = root["test_joint"].As<unsigned int>();
     const int RATE_HZ = root["RATE_HZ"].As<int>(); // Hz
+    const double Proportional_gain = root["Proportional_gain"].As<double>();
+    const double Differential_gain = root["Differential_gain"].As<double>();
     const int DT_MICRO = SECOND / RATE_HZ;
     const double DT_SEC = 1.0 / static_cast<double>(RATE_HZ);
     const double torque_increment_rate = root["initial_torque_increment_rate"].As<double>();
@@ -56,7 +59,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
     bool get_dynamic_values = false;
     bool get_static_torque = false;
     bool start_test = false; // flag variable to start testing for static torque breakaway point
-    bool cool_down = false;
+    bool cool_down = false; // flag variable to cool down the joint after reading data
     string arm_position_configuration = root["arm_position_configuration"].As<string>();
     std::vector<double> dynamic_data_velocity_values;
     int control_loop_delay_count = 0;
@@ -92,7 +95,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
         friction_estimation_I_gain.push_back(root["friction_estimation_I_gain"][i].As<double>());
     }
 
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < 10; i++)
     {
         dynamic_data_velocity_values.push_back(root["dynamic_data_velocity_values"][i].As<double>());
     }
@@ -124,7 +127,6 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
         printf("Unknown position configuration name. Exiting.");
         return false;
     }
-
     // Clearing faults
     try
     {
@@ -204,10 +206,10 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
         if (start_torque_test)
         {
             jnt_ctrl_torque_vec(TEST_JOINT) = root["jnt_ctrl_torque_vec_start"].As<double>();
+            std::cout<<"Collecting data"<<endl;
             get_static_torque = true;
             start_test = false;
             iteration_limit = breakaway_torque_iterations + dynamic_data_velocity_values.size();
-            // iteration_limit=breakaway_torque_iterations ;
         }
 
         for (int iteration_counter = 0; iteration_counter < iteration_limit; iteration_counter++)
@@ -325,7 +327,6 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
 
                             data_collector_obj.save_static_torques_breakawy_point(jnt_ctrl_torque_vec(TEST_JOINT));
                             data_collector_obj.save_static_torques_rate((torque_increment_rate * ((int)(iteration_counter / 10) + 1)));
-                            printf("breakawy point %f velocity point %f \n", jnt_ctrl_torque_vec(TEST_JOINT), jnt_velocity_vec(TEST_JOINT));
 
                             cool_down = true;
                             start_cooldown_time = std::chrono::steady_clock::now();
@@ -344,11 +345,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
 
                         if ((time_diff.count() / SECOND) > 3)
                         {
-                            cout << "dynamic control stoped" << endl;
                             cool_down = true;
-                            // Set the servoing mode back to Single Level
-                            // servoing_mode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
-                            // base->SetServoingMode(servoing_mode);
                             start_cooldown_time = std::chrono::steady_clock::now();
                             jnt_ctrl_torque_vec(TEST_JOINT) = 0.0;
                         }
@@ -359,8 +356,8 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
                             error = theta_dot_desired - nominal_vel_vec(TEST_JOINT);
 
                             // PD control
-                            jnt_ctrl_torque_vec(TEST_JOINT) = 11.5 * error;                                // P controller
-                            jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+                            jnt_ctrl_torque_vec(TEST_JOINT) = Proportional_gain * error;                                // Proportional gain
+                            jnt_ctrl_torque_vec(TEST_JOINT) += Differential_gain * (error - previous_error) / DT_SEC; // Differential gain
                             previous_error = error;
                             // Estimate friction in joints
                             if (compensate_joint_friction)
@@ -383,8 +380,8 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
                     error = 0.0 - nominal_vel_vec(TEST_JOINT);
 
                     // PD control
-                    jnt_ctrl_torque_vec(TEST_JOINT) = 11.5 * error;                                // P controller
-                    jnt_ctrl_torque_vec(TEST_JOINT) += 0.0009 * (error - previous_error) / DT_SEC; // D term
+                    jnt_ctrl_torque_vec(TEST_JOINT) = Proportional_gain * error;                                // Proportional gain
+                    jnt_ctrl_torque_vec(TEST_JOINT) += Differential_gain * (error - previous_error) / DT_SEC; // Differential gain
                     previous_error = error;
 
                     if (equal(0.0, jnt_velocity_vec(TEST_JOINT), 0.0002))
@@ -398,7 +395,6 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
                 {
                     if (std::chrono::duration<double, std::micro>(loop_start_time - control_start_time_sec).count() > 3000000)
                     {
-                        cout << "cooling down" << endl;
                         cool_down = false;
                         start_test = false;
 

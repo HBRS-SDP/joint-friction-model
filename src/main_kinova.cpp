@@ -171,11 +171,11 @@ int main(int argc, char **argv)
         auto isOk = controller.cyclic_torque_control(base, base_cyclic, actuator_config);    
         if (!isOk) std::cout << "There has been an unexpected error in cyclic_torque_control() function." << endl;
     }
+
     // invoking python script
-    std::string filename = "friction.py";
-    std::string com = "python3 ";
-    com = com + filename;
-    system(com.c_str());
+    std::string execute_py_code = "cd ..\ncd python_files\npython3 friction.py";
+    system(execute_py_code.c_str());
+
     // Close API session
     session_manager->CloseSession();
     session_manager_real_time->CloseSession();

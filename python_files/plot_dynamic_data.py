@@ -3,11 +3,15 @@ import numpy as np
 from numpy import genfromtxt
 import matplotlib.pyplot as plt
 import glob
-
+import yaml
+# parsing through the config file to read constants
+with open("../configs/constants.yml", 'r') as config_file:
+    constants = yaml.full_load(config_file)
+    frequency = constants["RATE_HZ"]
+#function to plot joint values
 def plot_joint_values():
-    path = 'data' # use your folder name
+    path = 'data' # using the folder name
     file_name = glob.glob("../"+path + "/*.csv")
-    velocity = np.array([0.01,0.02,0.03,0.04,0.05,0.06,0.09,0.1,0.3,0.5,0.7,0.9])
     #function for filtering friction torque
     def vector_filtering(x, y):
         A = np.hstack((x[np.newaxis].T, np.ones((len(x), 1))))
@@ -23,26 +27,28 @@ def plot_joint_values():
         np.fill_diagonal(S_inv, s_inv)
         A_pinv = Vt.T.dot(S_inv).dot(U.T)
         X = A_pinv.dot(b)
-        y_fit = X[0] * x + X[1]
-        return (x,y,y_fit)
+        y_filter = X[0] * x + X[1]
+        return (x,y,y_filter)
     #function for parsing through dymanic data and plotting joint values
-    for j in range(len(file_name)):
+    for file in range(len(file_name)):
         jnt_velocity=[]
         friction_torque=[]
-        nominal_vel=[]
         time=[]
         counter=0
-        content = genfromtxt(file_name[j], delimiter=' ')
-
-        for i in content[:,2]:
-            jnt_velocity.append(i)
+        content = genfromtxt(file_name[file], delimiter=' ')
+        _ , rhs = file_name[file].split("_", 1)
+        for iteration in content[:,2]:
+            jnt_velocity.append(iteration)
             counter=counter+1
             time.append(counter)
-        for i in content[:,6]:
-            friction_torque.append(i)
-        for k in range(len(time)):
-            time[k]=time[k]/900
-
+        for iteration in content[:,6]:
+            if(iteration == 'inf'):
+                friction_torque.append(0)
+            else:
+                friction_torque.append(iteration)
+        for iteration in range(len(time)):
+            time[iteration]=time[iteration]/frequency
+        
         fig, (ax1,ax2) = plt.subplots(2)
         fig.set_figwidth(40)
         fig.set_figheight(20)
@@ -54,12 +60,12 @@ def plot_joint_values():
         ax1.set_xlabel("Time (sec)")
         ax1.set_ylabel("[rad/sec]")
         
-        x,y,yfit = vector_filtering(np.array(time), np.array(friction_torque))
-        ax2.plot(x, y, color='g', label='Friction Torque')
-        ax2.plot(x, yfit, color='r', label='Friction_Torque_Filtered')
+        x,y,yfilter = vector_filtering(np.array(time), np.array(friction_torque))
+        ax2.plot(time, friction_torque, color='g', label='Friction Torque')
+        ax2.plot(x, yfilter, color='r', label='Friction_Torque_Filtered')
         ax2.legend()
         ax2.grid()
         ax2.set_xlabel("Time (sec)")
         ax2.set_ylabel("[Nm]")
 
-        plt.savefig('../plots/Joint_values_at_'+str(velocity[j])+'_rad_per_sec_velocity.png')
+        plt.savefig('../plots/Joint_values_at_'+rhs[0:4]+'_rad_per_sec_velocity.png')
