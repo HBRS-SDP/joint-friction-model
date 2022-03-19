@@ -1,3 +1,11 @@
+# Important notes
+
+# 1 N = 1 (Kg * m)/s^2
+# F = M * a                      FORCE
+# I = m * r^2  (Kg * m^2)        INERTIA
+# tau = I * a_ang                RELATION BETWEEN INERTIA AND ANGULAR ACCELERATION
+# N * m = Kg * m^2 * rad / s^2 = (Kg * m^2)/s^2 
+
 import numpy as np
 from numpy import genfromtxt
 import sympy as sp
@@ -10,11 +18,22 @@ import math
 import copy
 import sys
 import glob
+import yaml
+import pandas as pd
 
-path = 'data' # use your folder name
-file_name = glob.glob("../" + path + "/*.csv")
-velocity = np.array([0.1,0.3,0.5,0.9,1.3])
+def get_breakaway_friction():
+    path = './data/static_data/static_torque_breakaway_point.csv'
+    rows = []
+    data = pd.read_csv(path, sep = " ", header = None)
+    Fc = np.mean(data[0])
+    return Fc
 
+def get_inertia():
+    with open("./configs/constants.yml", "r") as file:
+        documents = yaml.full_load(file)
+        inertia = documents["joint_inertia"][documents["test_joint"]]
+        return inertia
+        
 def fit_line(x, y):
     A = np.hstack((x[np.newaxis].T, np.ones((len(x), 1))))
     b = y[np.newaxis].T
@@ -30,110 +49,21 @@ def fit_line(x, y):
     A_pinv = Vt.T.dot(S_inv).dot(U.T)
     X = A_pinv.dot(b)
     y_fit = X[0] * x + X[1]
-    return (x,y,y_fit)
-force=[]
-for j in range(len(file_name)):
-    jnt_ctrl_torque=[]
-    jnt_position=[]
-    jnt_velocity=[]
-    jnt_torque=[]
-    jnt_command_current=[]
-    jnt_current=[]
-    friction_torque=[]
-    nominal_pos=[]
-    nominal_vel=[]
-    initial_position=[]
-    initial_velocity=[]
-    time=[]
-    counter=0
-    content = genfromtxt(file_name[j], delimiter=' ')
-    for i in content[:,0]:
-        jnt_ctrl_torque.append(i)
-        counter=counter+1
-        time.append(counter)
-    for i in content[:,1]:
-        jnt_position.append(i)
-    for i in content[:,2]:
-        jnt_velocity.append(i)
-    for i in content[:,3]:
-        jnt_torque.append(i)
-    for i in content[:,4]:
-        jnt_command_current.append(i)
-    for i in content[:,5]:
-        jnt_current.append(i)
-    for i in content[:,6]:
-        friction_torque.append(i)
-    for i in content[:,7]:
-        nominal_pos.append(i)
-    for i in content[:,8]:
-        nominal_vel.append(i)
-    for i in content[:,9]:
-        initial_position.append(i)
-    for i in content[:,10]:
-        initial_velocity.append(i)
-    for k in range(len(time)):
-        time[k]=time[k]/900
-
-    fig, (ax1,ax2,ax3,ax4, ax5) = plt.subplots(5)
-    fig.set_figwidth(20)
-    fig.set_figheight(20)
-    fig.suptitle('Joint 6 parameters')
-
-    ax1.plot(time, jnt_position, color='b', label='Joint Position')
-    ax1.plot(time, nominal_pos, color='g', label='Nominal Position')
-    ax1.legend()
-    ax1.grid()
-    ax1.set_xlabel("Time (sec)")
-    ax1.set_ylabel("[rad]")
-
-    ax2.plot(time, jnt_velocity, color='r', label='Joint Velocity')
-    ax2.plot(time, nominal_vel, color='b', label='Nominal Velocity')
-    ax2.legend()
-    ax2.grid()
-    ax2.set_xlabel("Time (sec)")
-    ax2.set_ylabel("[rad/sec]")
-
-    ax3.plot(time, jnt_ctrl_torque, color='g', label='Joint Control Torque')
-    ax3.plot(time, jnt_torque, color='r', label='Joint Torque')
-    ax3.plot(time, friction_torque, color='b', label='Friction Torque')
-    ax3.legend()
-    ax3.grid()
-    ax3.set_xlabel("Time (sec)")
-    ax3.set_ylabel("[Nm]")
-
-    ax4.plot(time, jnt_command_current, color='g', label='Joint Command Current')
-    ax4.plot(time, jnt_current, color='r', label='Joint Current')
-    ax4.legend()
-    ax4.grid()
-    ax4.set_xlabel("Time (sec)")
-    ax4.set_ylabel("[A]")
-    
-    x,y,yfit = fit_line(np.array(time), np.array(friction_torque))
-    ax5.scatter(x, y, color='g', label='Joint Control Torque')
-    ax5.plot(x, yfit, color='r', label='Joint Control Torque_fit')
-    ax5.legend()
-    ax5.grid()
-    ax5.set_xlabel("Time (sec)")
-    ax5.set_ylabel("[Nm]")
-    plt.savefig('../plots/Joint_6_params_file_'+str(j)+'.png')
-    y_mean = np.mean(yfit)
-    force.append(abs(y_mean))
-    print("Point"+ str(j)+"=",abs(y_mean))
+    return (x, y, y_fit)
 
 #FUNCTION TO DEFINE THE PARAMETERS AS SYMBOLS
 def symbolic_poly(poly_params, Fs, v):
     return ((poly_params[0] + (Fs - poly_params[0]) * sp.exp(-(v/poly_params[1])**2))*np.sign(v) + poly_params[2]*v)
+
 #FUNCTION TO CALCULATE THE ERROR OF THE ORIGINAL FUNCTION AND THE FUNCTION WITH NEW PARAMETERS
 def error(poly_params, xs, ys, Fs):
-    aux = ([])
+    aux = []
     for i in range(len(xs)):
-        aux.append(symbolic_poly(poly_params, Fs, xs[i])-ys[i])
-    return (reduce(lambda y, x: x**2 + y, aux))/(len(aux))
+        aux.append((symbolic_poly(poly_params, Fs, xs[i])-ys[i])**2)
+    return sum(aux)/len(aux)
 
 #FUNCTION TO FIT THE PARAMETERS WITH THE ITERATIVE NEWTON METHOD
-def newton(poly_params, xs: np.ndarray, ys: np.ndarray, param_value_guess: np.ndarray,
-    Fs, max_iter: int=100, epsilon: float=0.01) -> Tuple[np.ndarray, int, float]:
-
+def newton(poly_params, xs, ys, param_value_guess, Fs, max_iter: int=100, epsilon: float=0.01) -> Tuple[np.ndarray, int, float]:
     params = np.array(param_value_guess)
     params_final = np.array(param_value_guess)
     final_error = 1e10    
@@ -144,32 +74,24 @@ def newton(poly_params, xs: np.ndarray, ys: np.ndarray, param_value_guess: np.nd
     xcurr = sp.Matrix(params)
     param_dict = dict(zip(poly_params, params))
     least_error = 1e10
-    
     for iteration in range(max_iter):
         myjaceval = myjac.evalf(subs=param_dict)
         Xeval = X.evalf(subs=param_dict)
         xcurr = xcurr - myjaceval.pinv() @ Xeval
         for i,elem in enumerate(poly_params):
-            param_dict[elem] = xcurr[i]
+            param_dict[elem] = abs(xcurr[i])
         final_error = error(poly_params, xs, ys, Fs).subs(param_dict)
-        #print(final_error, np.array(list(param_dict.values()),dtype=float))
         if final_error <= least_error:
             least_error = final_error
             params_final = np.array(list(param_dict.values()),dtype=float)
         if final_error <= epsilon:
             break
-    #params = np.array(list(param_dict.values()),dtype=float)
-    return (params_final, least_error)
 
-#SETUP THE VARIABLES 
-poly_params = sp.symbols('Fc, vs, beta')
-init_param_values = np.array([1, 0.5, 2])
-Fs= 2
-parameter, final_error = newton(poly_params, velocity, force, init_param_values, Fs)
+    return (params_final, least_error)
 
 #FUNCTION TO PLOT MODELS
 def show_model(y_fit, y, x, xlabel, ylabel):
-   # plt.figure(figsize=(3,3))
+    plt.figure(figsize=(10, 10))
     plt.plot(x,y_fit)
     plt.grid(color='b', linestyle='-', linewidth=0.1)
     plt.scatter(x,y, color='r', linewidth=1)
@@ -177,60 +99,109 @@ def show_model(y_fit, y, x, xlabel, ylabel):
     plt.ylabel(ylabel)
     plt.show()
 
-F_fit = (parameter[0] + (Fs - parameter[0]) * np.exp(-(velocity/parameter[1])**2))*np.sign(velocity) + parameter[2]*velocity
-show_model(F_fit, force, velocity, 'Velocity', 'Force')
-print("Fc: ", parameter[0])
-print("vs: ", parameter[1])
-print("Sigma 2: ", parameter[2])
-print("FINAL ERROR: ", final_error)
+def sim_mass_with_ramp_force_input(t, I, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, force_rate, ts):
+    zdot   = 0.0                    # z_dot
+    qdot_2 = 0.0                    #x_dot_dot
+    qdot_1 = 0.0                    #x_dot , q_2
+    q_3    = 0.0                    # z
+    q_1    = 0.0                    # x
+    v      = []
+    f      = []
+    
+    for i in t:
+        zdot = qdot_1 - ((q_3 * abs(qdot_1) * sigma_0) / (Fc + (Fs - Fc) * np.exp(-(qdot_1/vs)**2)))
+        F = sigma_0 * q_3 + sigma_1 * zdot + sigma_2 * qdot_1
+        f.append(F)
+        v.append(qdot_1)
+        u = force_rate * i     # % ramped-up force input
+        qdot_2 = (u - F) / I 
+        # update_state
+        qdot_1 += qdot_2 * ts
+        q_1    += qdot_1 * ts
+        q_3    += zdot * ts
+    return qdot_1, qdot_2, zdot, q_1, q_3, f, v
 
-vs = parameter[1]
-Fc = parameter[0]
-sigma_2 = parameter[2]
 
 #FUNCTION TO DEFINE THE PARAMETERS AS SYMBOLS
-def symbolic_poly_2(poly_params, M, Fs, Fc, sigma_2, vs, ts, force_rate, u, qdot_1, qdot_3, q_1, q_3):
-    exponential = reduce(lambda x, y: math.exp(-(x/vs)**2) + y, qdot_1)
-    g_v = Fc + (Fs - Fc) * exponential 
-    absolute_value = reduce(lambda x, y: abs(x) + y, qdot_1)
-    qdot_3 = qdot_1[0] - q_3 * absolute_value * poly_params[0] / g_v
-    F = poly_params[0] * q_3 + poly_params[1] * qdot_3 + sigma_2 * qdot_1[0]
-    qdot_2 = (u - F) / M
+def symbolic_poly_2(poly_params, I, Fs, Fc, sigma_2, vs, ts, qdot_1, q_3, error, previous_error, error_sum, param_dict):
     
+    g_v = Fc + (Fs - Fc) * math.exp(-(qdot_1/vs)**2) 
+    zdot = qdot_1 - q_3 * abs(qdot_1) * poly_params[0] / g_v
+    F = poly_params[0] * q_3 + poly_params[1] * zdot + sigma_2 * qdot_1
+    F_eval = F.subs(param_dict)
     # update_state
-    qdot_1[0] += qdot_2 * ts
-    q_1    += qdot_1[0] * ts
-    q_3    += qdot_3 * ts
-    u      += force_rate * ts
-
-    return F, qdot_1[0], q_1, q_3, u, qdot_3
- 
-def error_2(poly_params, params, xs, ys, vs, Fc, Fs, sigma_2, ts, force_rate):
+    u = 12.0 * error + 0.03 * (error - previous_error) / ts + 0.0 * error_sum + F_eval
+    qdot_2 = (u - F_eval) / I # acceleration
+    return F, u, zdot, qdot_2, F_eval
+  
+def error_2(poly_params, params, xs, ys, vs, Fc, Fs, sigma_2, ts, force_rate, I):
     f = []
     for i in range(len(xs)):
-        qdot_3 = 0     # z_dot
-        qdot_1 = [0]   # x_dot
-        q_3 = 0        # z
-        q_1 = 0        # x
-        u = 0.0
-        M = 1
-        F = 0
-        sim_velocity = 0.0
-        while sim_velocity < xs[i]:
-            F, qdot_1[0], q_1, q_3, u, qdot_3 = symbolic_poly_2(poly_params, M, Fs, Fc, sigma_2, vs, ts, force_rate, u, qdot_1, qdot_3, q_1, q_3)
-            param_dict = dict(zip(poly_params, params))
-            sim_velocity = qdot_1[0].subs(param_dict)
-        f.append((F-ys[i])**2)
-    return sum(f)/len(f)
+        qdot_1 = 0.0      # x_dot
+        qdot_2 = 0.0      # x_dot_dot
+        q_3    = 0        # z
+        q_1    = 0        # x
+        u      = 0.0
+        F      = 0.0
+        F_last = 0.0
+        u_ac = []
+        F_ac = []
+        error_sum = 0
+        previous_error = 0
+        error = xs[i] - qdot_1
+        iteration = 0
+        velocity = []
+        time = []
+        param_dict = dict(zip(poly_params, params))
+        loop_iteration = 0
+        
+        for y in range(140):
+            F, u, zdot, qdot_2, F_eval = symbolic_poly_2(poly_params, I, Fs, Fc, sigma_2, vs, ts, qdot_1, q_3, error, previous_error, error_sum, param_dict)
+            F_ac.append(F_eval)
+            qdot_1 += qdot_2.subs(param_dict) * ts # update velocity
+            q_1    += qdot_1 * ts  # update position
+            q_3    += zdot * ts    # 
+            time.append(loop_iteration * ts)
+            velocity.append(qdot_1)
+            u_ac.append(u)
+            error_sum += error * ts
+            previous_error = error
+            error = xs[i] - qdot_1
+            
+            F_last = poly_params[0] * q_3.subs(param_dict) + poly_params[1] * zdot.subs(param_dict) + sigma_2 * qdot_1
+            loop_iteration += 1
+            if q_1 < 0:
+                q_1 += 360
+            elif q_1 > 360:
+                q_1 -= 360
+                
+            if abs(error) < 0.001:
+                iteration += 1
+            else:
+                iteration = 0
+            if iteration >= 15:
+               # print("Error stable iteration: ", iteration)
+                break 
+        f.append((F_last-ys[i])**2)
+#        print("reference Velocity: ", xs[i])
+#        print("Loop iteration: ", loop_iteration)
+#         show_model(velocity, velocity, time, 'time', 'velocity')
+        
+#         show_model(u_ac, u_ac, time, 'time', 'u')
+#         show_model(F_ac, F_ac, time, 'time', 'Force')
+#         show_model(F_ac, F_ac, velocity, 'Vel', 'Force')
+    error_poli = sum(f)/len(f)
+    return error_poli
 
 #FUNCTION TO FIT THE PARAMETERS WITH THE ITERATIVE NEWTON METHOD
-def newton_3(poly_params, xs, ys, param_value_guess, vs, Fc, Fs, s2, ts, force_rate, max_iter: int=100, epsilon: float=0.001) -> Tuple[np.ndarray, int, float]:
+
+def newton_3(poly_params, xs, ys, param_value_guess, vs, Fc, Fs, s2, ts, force_rate, I, max_iter: int = 15, epsilon: float=0.001) -> Tuple[np.ndarray, int, float]:
     
     finalErrorsList = []
     params = np.array(param_value_guess)
     params_final = np.array(param_value_guess)
     final_error = 1e10    
-    errorf = error_2(poly_params, params, xs, ys, vs, Fc, Fs, s2, ts, force_rate)
+    errorf = error_2(poly_params, params, xs, ys, vs, Fc, Fs, s2, ts, force_rate, I)
     X = sp.Matrix([errorf])
     Y = sp.Matrix(poly_params)
     myjac = X.jacobian(Y)
@@ -238,77 +209,96 @@ def newton_3(poly_params, xs, ys, param_value_guess, vs, Fc, Fs, s2, ts, force_r
     param_dict = dict(zip(poly_params, params))
     least_error = 1e10
     for iteration in range(max_iter):
-        myjaceval = myjac.evalf(subs=param_dict)
+        myjaceval = myjac.evalf(subs = param_dict)
         Xeval = X.evalf(subs=param_dict)
         xcurr = xcurr - myjaceval.pinv() @ Xeval
-        for i,elem in enumerate(poly_params):
-            param_dict[elem] = xcurr[i]    
-        final_error = error_2(poly_params,params, xs, ys, vs, Fc, Fs, s2, ts, force_rate).subs(param_dict).subs(param_dict)
+        for i, elem in enumerate(poly_params):
+            param_dict[elem] = abs(xcurr[i])
+        final_error = error_2(poly_params,params, xs, ys, vs, Fc, Fs, s2, ts, force_rate, I).subs(param_dict)
         if final_error <= least_error:
             least_error = final_error
-            params_final = np.array(list(param_dict.values()),dtype=float)
-            
-            #ploting the error for every iteration
-            #finalErrorsList.append(final_error)
-            #l = list(range(len(finalErrorsList)))
-            #plot_f(l, finalErrorsList, 'Error over time', '#iteration', 'error')
-            
+            params_final = np.array(list(param_dict.values()),dtype=float)      
         if least_error <= epsilon:
-            print("Num interations ", iteration)
             break
             
     return (params_final, least_error)
 
-ts = 0.3
-time_span = 1.5
-t_sol = np.arange(0, time_span, ts)
+path            = 'data'                                      # use your folder name
+file_name       = glob.glob("./" + path + "/*.csv")
+points_quantity = len(file_name)
+force           = []
+velocity        = np.zeros(points_quantity)
 
+for j in range(points_quantity):
+    jnt_ctrl_torque     = []
+    jnt_position        = []
+    jnt_velocity        = []
+    jnt_torque          = []
+    jnt_command_current = []
+    jnt_current         = []
+    friction_torque     = []
+    nominal_pos         = []
+    nominal_vel         = []
+    initial_position    = []
+    initial_velocity    = []
+    time                = []
+    counter             = 0
+    content             = genfromtxt(file_name[j], delimiter = ' ')
+    velocity[j]         = float(file_name[j][16:22])
+
+    for i in content[:, 0]:
+        jnt_ctrl_torque.append(i)
+        counter = counter + 1
+        time.append(counter)
+    for i in content[:, 1]:
+        jnt_position.append(i)
+    for i in content[:,2]:
+        jnt_velocity.append(i)
+    for i in content[:, 3]:
+        jnt_torque.append(i)
+    for i in content[:, 4]:
+        jnt_command_current.append(i)
+    for i in content[:, 5]:
+        jnt_current.append(i)
+    for i in content[:, 6]:
+        friction_torque.append(i)
+    for k in range(len(time)):
+        time[k] = time[k] / 900
+        
+    x, y, yfit = fit_line(np.array(time), np.array(friction_torque))
+    y_mean = np.mean(yfit)
+    force.append(abs(y_mean))
+    print("Point"+ str(j)+"=",abs(y_mean))
+
+#SETUP THE VARIABLES 
+
+Fs = get_breakaway_friction()
+I = get_inertia()
+print("Fs: ", Fs)
+print("I: ", I)
+poly_params = sp.symbols('Fc, vs, sigma_2')
+init_param_values = np.array([1.5, 0.1, 0.1])
+
+parameter, final_error = newton(poly_params, velocity, force, init_param_values, Fs)
+
+F_fit = (parameter[0] + (Fs - parameter[0]) * np.exp(-(velocity/parameter[1])**2))*np.sign(velocity) + parameter[2]*velocity
+#show_model(F_fit, force, velocity, 'Velocity', 'Force')
+Fc      = parameter[0]
+vs      = parameter[1]
+sigma_2 = parameter[2]
+
+print("Fc: ", Fc)
+print("vs: ", vs)
+print("Sigma 2: ", sigma_2)
+print("FINAL ERROR: ", final_error)
+
+ts = 0.01
 poly_params_dyn = sp.symbols('s0, s1')
-init_param_values = np.array([10, 10])
+init_param_values = np.array([1, 1])
 max_force = 1
-parameter_dyn, final_error_dyn = newton_3(poly_params_dyn, velocity, force, init_param_values, vs, Fc, Fs, sigma_2, ts, max_force) 
-print("Sigma 0: ", parameter_dyn[0])
-print("Sigma 1: ", parameter_dyn[1])
+
+parameter_dyn, final_error_dyn = newton_3(poly_params_dyn, velocity, force, init_param_values, vs, Fc, Fs, sigma_2, ts, max_force, I) 
+
+print("Sigma 0: ", sigma_0)
+print("Sigma 1: ", sigma_1)
 print("FINAL ERROR: ", final_error_dyn)
-
-sigma_0= parameter_dyn[0]
-sigma_1= parameter_dyn[1]
-
-def sim_mass_with_ramp_force_input(t, M, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, force_rate, ts):
-    qdot_3 = 0.0 # z_dot
-    qdot_2 = 0.0 #x_dot_dot
-    qdot_1 = 0.0 #x_dot , q_2
-    q_3 = 0.0 # z
-    q_1 = 0.0 # x
-    v = []
-    f = []
-    
-    for i in t:
-        zdot = qdot_1 - ((q_3 * abs(qdot_1) * sigma_0) / (Fc + (Fs - Fc) * np.exp(-(qdot_1/vs)**2)))
-        F = sigma_0 *q_3 + sigma_1 * qdot_3 + sigma_2 * qdot_1
-        f.append(F)
-        v.append(qdot_1)
-        u = force_rate * i     # % ramped-up force input
-        qdot_2 = (u - F) / M
-        qdot_3 = zdot
-        # update_state
-        qdot_1 = qdot_1 + qdot_2 * ts
-        q_1 = q_1 + qdot_1 * ts
-        q_3 = q_3 + qdot_3 * ts
-
-    return qdot_1, qdot_2, qdot_3, q_1, q_3, f, v
-
-M = 1
-Fc_approx = parameter[0]
-vs_approx = parameter[1]
-sigma_2_approx = parameter[2]
-sigma_1_approx = parameter_dyn[1]
-sigma_0_approx = parameter_dyn[0]
-
-time_span =  np.linspace(0, 2, 100)
-F_rate =1
-# qdot_1, qdot_2, qdot_3, q_1, q_3, friction_force, velocity = sim_mass_with_ramp_force_input(time_span, M, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, F_rate, time_span[1] - time_span[0])
-qdot_1, qdot_2, qdot_3, q_1, q_3, friction_force_estimated, velocity_estimated = sim_mass_with_ramp_force_input(time_span, M, Fs, Fc_approx, sigma_0_approx, sigma_1_approx, sigma_2_approx, vs_approx, F_rate, time_span[1] - time_span[0])
-
-# show_model(velocity_estimated, velocity, friction_force, 'Velocity', 'Force')
-show_model(friction_force_estimated, friction_force_estimated, time_span, 'time', 'Force')
