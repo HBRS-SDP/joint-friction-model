@@ -54,7 +54,7 @@ def plot_joint_values():
         fig, (ax1,ax2) = plt.subplots(2)
         fig.set_figwidth(40)
         fig.set_figheight(20)
-        fig.suptitle('Joint vectors')
+        fig.suptitle('Joint_vectors_at_velocity_'+rhs[0:4]+ '_rad_per_sec')
 
         ax1.plot(time, jnt_velocity, color='b', label='Joint Velocity')
         ax1.legend()
@@ -70,4 +70,4 @@ def plot_joint_values():
         ax2.set_xlabel("Time (sec)")
         ax2.set_ylabel("[Nm]")
 
-        plt.savefig('../plots/Joint_values_at_'+rhs[0:4]+'_rad_per_sec_velocity.png')
+        plt.savefig('../plots/Joint_values_at_' +rhs[0:4]+ '_rad_per_sec_velocity.png')
