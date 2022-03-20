@@ -6,7 +6,7 @@ test_joint: 6 # count starts from zero so 6 means the 7th joint
 actuator_count: 7
 jnt_ctrl_torque_vec_start: 0.1
 initial_torque_increment_rate: 0.05
-breakaway_torque_samples: 10
+breakaway_torque_samples: 1
 number_of_rate_increments: 5
 breakaway_torque_velocity_threshold: 0.13
 

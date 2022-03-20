@@ -1,5 +1,5 @@
-#ifndef TORQUE_CONTROLLER_H
-#define TORQUE_CONTROLLER_H
+#ifndef FRICTION_CONTROLLER_H
+#define FRICTION_CONTROLLER_H
 #pragma once
 #include <KDetailedException.h>
 #include <BaseCyclicClientRpc.h> 
@@ -9,7 +9,7 @@
 #include <friction_observer.hpp>
 namespace k_api = Kinova::Api;
 
-class torque_controller  
+class friction_controller  
 {
 	private:
 

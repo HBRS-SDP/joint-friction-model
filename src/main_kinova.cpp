@@ -7,7 +7,7 @@
 #include <chrono>
 #include <time.h>
 #include <unistd.h>
-#include <torque_controller.hpp>
+#include <friction_controller.hpp>
 #include <SessionClientRpc.h>
 #include <SessionManager.h>
 #include <RouterClient.h>
@@ -30,7 +30,7 @@ constexpr auto TIMEOUT_PROMISE_DURATION = std::chrono::seconds{20};
 float TIME_DURATION = 30.0f; // Duration of the example (seconds)
 
 //Create variable for controller
-torque_controller controller;
+friction_controller controller;
 // Create an event listener that will set the promise action event to the exit value
 // Will set promise to either END or ABORT
 // Use finish_promise.get_future.get() to wait and get the value
