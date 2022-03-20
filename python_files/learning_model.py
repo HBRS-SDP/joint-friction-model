@@ -120,7 +120,6 @@ def learn_model():
 		plt.xlabel(xlabel_name)
 		plt.ylabel(ylabel_name)
 		plt.title(title)
-		#plt.show()
 		plt.savefig('../plots/' + title + '.png')
 
 	#SIMULATION WITH MASS (PLOTTING PURPOSES ONLY)
@@ -251,11 +250,15 @@ def learn_model():
 
 	#GET DATA FROM FILES SAVED FROM KINOVA ARM
 
-	path            = 'data'                                      # use your folder name
+	path            = 'data'                                      # using the folder name
 	file_name       = glob.glob("../" + path + "/*.csv")
 	points_quantity = len(file_name)
 	force           = []
 	velocity        = np.zeros(points_quantity)
+
+	with open("../configs/constants.yml", 'r') as config_file:
+		constants = yaml.full_load(config_file)
+		frequency = constants["RATE_HZ"]
 
 	for j in range(points_quantity):
 		jnt_ctrl_torque     = []
@@ -290,7 +293,7 @@ def learn_model():
 			else:
 				friction_torque.append(i)
 		for k in range(len(time)):
-			time[k] = time[k] / 900
+			time[k] = time[k] / frequency
 					
 		time, friction_torque, friction_torque_fit = get_average_friction(np.array(time), np.array(friction_torque))
 		friction_mean = np.mean(friction_torque_fit)

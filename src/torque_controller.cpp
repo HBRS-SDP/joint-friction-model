@@ -1,4 +1,4 @@
-#include <friction_controller.hpp>
+#include <torque_controller.hpp>
 #include <data_collector.hpp>
 #include <yaml/Yaml.hpp>
 #include <cmath>
@@ -18,7 +18,7 @@ std::chrono::duration<double, std::micro> loop_interval{};
 std::chrono::duration<double, std::micro> total_time_sec{};
 std::chrono::duration<double, std::micro> time_diff{};
 // Make sure that the control loop runs exactly with the specified frequency
-int friction_controller::enforce_loop_frequency(const int dt)
+int torque_controller::enforce_loop_frequency(const int dt)
 {
     loop_interval = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - loop_start_time);
     if (loop_interval < std::chrono::microseconds(dt)) // Loop is sufficiently fast
@@ -36,7 +36,7 @@ bool equal(double x, double y, double epsilon = 0.00001)
     return (std::fabs(x - y) < epsilon);
 }
 
-bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k_api::BaseCyclic::BaseCyclicClient *base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient *actuator_config)
+bool torque_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k_api::BaseCyclic::BaseCyclicClient *base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient *actuator_config)
 {
     Data_collector data_collector_obj;
     Yaml::Node root;
@@ -206,7 +206,7 @@ bool friction_controller::cyclic_torque_control(k_api::Base::BaseClient *base, k
         if (start_torque_test)
         {
             jnt_ctrl_torque_vec(TEST_JOINT) = root["jnt_ctrl_torque_vec_start"].As<double>();
-            std::cout<<"Collecting data"<<endl;
+            printf ("%s \n", "Collecting Data");
             get_static_torque = true;
             start_test = false;
             iteration_limit = breakaway_torque_iterations + dynamic_data_velocity_values.size();
