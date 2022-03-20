@@ -13,10 +13,7 @@ import sympy as sp
 import matplotlib.pyplot as plt
 import csv
 from typing import Tuple, Sequence, Dict
-from functools import reduce
-import random
 import math 
-import copy
 import sys
 import glob
 import yaml
@@ -28,7 +25,6 @@ def learn_model():
 
 	def get_breakaway_friction():
 		path = '../data/static_data/static_torque_breakaway_point.csv'
-		rows = []
 		data = pd.read_csv(path, sep = " ", header = None)
 		Fc   = np.mean(data[0])
 		return Fc
@@ -109,13 +105,13 @@ def learn_model():
 				break
 		return (params_final, least_error)
 
-	#FUNCTION TO PLOT 2 FUNCTIONS IN A SINGLE PLOT
+	#FUNCTION TO PLOT 2 FUNCTIONS IN A SINGLE GRAPH
 
 	def show_model(new_data, data, reference, xlabel_name, ylabel_name, title):
 		plt.figure(figsize = (10, 10))
-		plt.plot(reference, new_data, label='Estimated data')
+		plt.plot(reference, new_data, label = 'Estimated data')
 		plt.grid(color = 'b', linestyle = '-', linewidth = 0.1)
-		plt.scatter(reference, data, color = 'r', linewidth = 1, label='Original data')
+		plt.scatter(reference, data, color = 'r', linewidth = 1, label = 'Original data')
 		plt.legend()
 		plt.xlabel(xlabel_name)
 		plt.ylabel(ylabel_name)
@@ -125,7 +121,7 @@ def learn_model():
 
 	#SIMULATION WITH MASS (PLOTTING PURPOSES ONLY)
 
-	def sim_mass_with_ramp_force_input(t, I, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, force_rate, ts):
+	def simulation_lugre(t, I, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, force_rate, ts):
 		zdot                 = 0.0                     # z_dot
 		acceleration         = 0.0                     #x_dot_dot
 		velocity             = 0.0                     #x_dot
@@ -158,14 +154,14 @@ def learn_model():
 		F            = poly_params[0] * z + poly_params[1] * zdot + sigma_2 * velocity
 		F_eval       = F.subs(param_dict)
 		
-		# update_state
-		u            = 12.0 * error + 0.03 * (error - previous_error) / ts + 0.0 * error_sum + F_eval
-		acceleration = (u - F_eval) / I                                                # acceleration
+		# control (uncomment u if needed to use PID)
+		u            = 12.0 * error + 0.03 * (error - previous_error) / ts # + 0.0 * error_sum + F_eval
+		acceleration = (u - F_eval) / I                                               
 		return F, u, zdot, acceleration, F_eval
 
 	#FUNCTION TO DEFINE THE ERROR OF THE LUGRE FUNCTION AS SYMBOLS
 
-	def error_polynomial_lugre(poly_params, params, velocity, friction_force, vs, Fc, Fs, sigma_2, ts, force_rate, I):
+	def error_polynomial_lugre(poly_params, params, velocity, friction_force, vs, Fc, Fs, sigma_2, ts, I):
 		f = []
 		for i in range(len(velocity)):
 			velocity_current     = 0.0        # x_dot
@@ -186,12 +182,12 @@ def learn_model():
 			param_dict           = dict(zip(poly_params, params))
 			loop_iteration       = 0
 			
-			for y in range(140):
+			for control_limit in range(140):
 				F, u, zdot, acceleration, F_eval = symbolic_polynomial_dynamic(poly_params, I, Fs, Fc, sigma_2, vs, ts, velocity_current, z, error, previous_error, error_sum, param_dict)
 				F_accumulated.append(F_eval)
-				velocity_current += acceleration.subs(param_dict) * ts # update velocity
-				angular_position += velocity_current * ts  # update position
-				z                += zdot * ts    # 
+				velocity_current += acceleration.subs(param_dict) * ts        # update velocity
+				angular_position += velocity_current * ts                     # update position
+				z                += zdot * ts   
 				time.append(loop_iteration * ts)
 				velocity_accumulated.append(velocity_current)
 				u_accumulated.append(u)
@@ -201,6 +197,8 @@ def learn_model():
 				
 				F_last = poly_params[0] * z.subs(param_dict) + poly_params[1] * zdot.subs(param_dict) + sigma_2 * velocity_current
 				loop_iteration   += 1
+
+				# CONTROL THE ROTATIONAL LIMITS
 				if angular_position < 0:
 					angular_position += 2 * np.pi
 				elif angular_position > 2 * np.pi:
@@ -213,6 +211,7 @@ def learn_model():
 				if iteration >= 15:
 					break 
 			f.append((F_last-friction_force[i])**2)
+	#		UNCOMMENT NEXT LINES TO SEE THE VELOCITY CONVERGING 
 	#        print("reference Velocity: ", velocity[i])
 	#        show_model(velocity, velocity, time, 'Time [sec]', 'Velocity [rad/sec]', 'Control of velocity')
 			
@@ -221,13 +220,12 @@ def learn_model():
 
 	#FUNCTION TO FIT THE PARAMETERS WITH THE ITERATIVE NEWTON METHOD
 
-	def newton_raphson_lugre(poly_params, velocity, friction_force, param_value_guess, vs, Fc, Fs, s2, ts, force_rate, I, max_iter: int = 15, epsilon: float=0.001):
+	def newton_raphson_lugre(poly_params, velocity, friction_force, param_value_guess, vs, Fc, Fs, s2, ts, I, max_iter: int = 15, epsilon: float=0.001):
 		
-		finalErrorsList = []
 		params = np.array(param_value_guess)
 		params_final = np.array(param_value_guess)
 		final_error = 1e10    
-		errorf = error_polynomial_lugre(poly_params, params, velocity, friction_force, vs, Fc, Fs, s2, ts, force_rate, I)
+		errorf = error_polynomial_lugre(poly_params, params, velocity, friction_force, vs, Fc, Fs, s2, ts, I)
 		X = sp.Matrix([errorf])
 		Y = sp.Matrix(poly_params)
 		myjac = X.jacobian(Y)
@@ -240,7 +238,7 @@ def learn_model():
 			xcurr = xcurr - myjaceval.pinv() @ Xeval
 			for i, elem in enumerate(poly_params):
 				param_dict[elem] = abs(xcurr[i])
-			final_error = error_polynomial_lugre(poly_params,params, velocity, friction_force, vs, Fc, Fs, s2, ts, force_rate, I).subs(param_dict)
+			final_error = error_polynomial_lugre(poly_params,params, velocity, friction_force, vs, Fc, Fs, s2, ts, I).subs(param_dict)
 			if final_error <= least_error:
 				least_error = final_error
 				params_final = np.array(list(param_dict.values()),dtype=float)      
@@ -300,7 +298,7 @@ def learn_model():
 
 	Fs = get_breakaway_friction()
 	I  = get_inertia()
-	print("Fs: ", "{:.2f}".format(Fs), "[N]")
+	print("Fs: ", "{:.2f}".format(Fs), "[Nm]")
 	print("I: ", "{:.2f}".format(I), "[Kg * m^2]")
 	poly_params = sp.symbols('Fc, vs, sigma_2')
 	init_param_values = np.array([1.5, 0.1, 0.1])
@@ -311,22 +309,21 @@ def learn_model():
 	vs      = parameter[1]
 	sigma_2 = parameter[2]
 
-	print("Fc: ","{:.2f}".format(Fc), "[N]")
-	print("vs: ", "{:.2f}".format(vs),"[rad/sec]" )
-	print("Sigma 2: ", "{:.2f}".format(sigma_2))
+	print("Fc: ","{:.2f}".format(Fc), "[Nm]")
+	print("vs: ", "{:.2f}".format(vs),"[rad/sec]")
+	print("Sigma 2: ", "{:.2f}".format(sigma_2), "[N.m.s/rad]")
 	print("Error of friction with estimated parameters in steady state: ", "{:.4f}".format(final_error))
 
-	ts = 0.01
+	ts = 0.01									#Delta t
 	poly_params_dyn   = sp.symbols('s0, s1')
 	init_param_values = np.array([1, 1])
-	max_force         = 1
 
-	parameter_dyn, final_error_dyn = newton_raphson_lugre(poly_params_dyn, velocity, force, init_param_values, vs, Fc, Fs, sigma_2, ts, max_force, I) 
+	parameter_dyn, final_error_dyn = newton_raphson_lugre(poly_params_dyn, velocity, force, init_param_values, vs, Fc, Fs, sigma_2, ts, I) 
 	sigma_0 = parameter_dyn[0]
 	sigma_1 = parameter_dyn[1]
 
-	print("Sigma 0: ", "{:.2f}".format(sigma_0))
-	print("Sigma 1: ", "{:.2f}".format(sigma_1))
+	print("Sigma 0: ", "{:.2f}".format(sigma_0), '[Nm]')
+	print("Sigma 1: ", "{:.2f}".format(sigma_1), '[Nm]')
 	print("Error of Lugre model with estimated parameters: ", "{:.4f}".format(final_error_dyn))
 	
 	#PLOT THE COMPARISON BETWEEN ORIGINAL DATA AND LUGRE MODEL ESTIMATED
@@ -334,7 +331,9 @@ def learn_model():
 	time_span =  np.linspace(0, 1.5, 151)
 	F_rate = 1
 	v = np.linspace(0, 1.5, 151)
-	friction_force_estimated, velocity_estimated = sim_mass_with_ramp_force_input(time_span, I, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, F_rate, time_span[1] - time_span[0])
+	friction_force_estimated, velocity_estimated = simulation_lugre(time_span, I, Fs, Fc, sigma_0, sigma_1, sigma_2, vs, F_rate, time_span[1] - time_span[0])
+	
+	# THE SPEEDS COLLECTED FROM THE ROBOT ARE LIMITED, SO UNKNOWN FORCES ARE ZERO-FILLED FOR DEMONSTRATION REASON ONLY
 	force_real = np.zeros(len(v))
 	force_real[0] = Fs
 	counter = 0
